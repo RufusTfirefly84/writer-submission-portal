@@ -1,4 +1,4 @@
-const isAdmin = currentAgent?.email === 'admin@playground.com';
+  const isAdmin = currentAgent?.email === 'admin@playground.com';
   const colors = getColorClasses(uxSettings.primaryColor);import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
 
