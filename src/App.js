@@ -1,5 +1,4 @@
-const isAdmin = currentAgent?.email === 'admin@playground.com';
-  const colors = getColorClasses(uxSettings.primaryColor);import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
 
 const WriterSubmissionPortal = () => {
@@ -86,6 +85,69 @@ const WriterSubmissionPortal = () => {
     sample_script: null,
     pitch_summary: ''
   });
+
+  const getColorClasses = (color) => {
+    const colorMap = {
+      indigo: {
+        bg: 'bg-indigo-600',
+        bgHover: 'bg-indigo-700',
+        bgDark: 'bg-indigo-800',
+        text: 'text-indigo-600',
+        textLight: 'text-indigo-200',
+        border: 'border-indigo-500',
+        borderHover: 'border-indigo-300'
+      },
+      blue: {
+        bg: 'bg-blue-600',
+        bgHover: 'bg-blue-700',
+        bgDark: 'bg-blue-800',
+        text: 'text-blue-600',
+        textLight: 'text-blue-200',
+        border: 'border-blue-500',
+        borderHover: 'border-blue-300'
+      },
+      purple: {
+        bg: 'bg-purple-600',
+        bgHover: 'bg-purple-700',
+        bgDark: 'bg-purple-800',
+        text: 'text-purple-600',
+        textLight: 'text-purple-200',
+        border: 'border-purple-500',
+        borderHover: 'border-purple-300'
+      },
+      green: {
+        bg: 'bg-green-600',
+        bgHover: 'bg-green-700',
+        bgDark: 'bg-green-800',
+        text: 'text-green-600',
+        textLight: 'text-green-200',
+        border: 'border-green-500',
+        borderHover: 'border-green-300'
+      },
+      red: {
+        bg: 'bg-red-600',
+        bgHover: 'bg-red-700',
+        bgDark: 'bg-red-800',
+        text: 'text-red-600',
+        textLight: 'text-red-200',
+        border: 'border-red-500',
+        borderHover: 'border-red-300'
+      },
+      gray: {
+        bg: 'bg-gray-600',
+        bgHover: 'bg-gray-700',
+        bgDark: 'bg-gray-800',
+        text: 'text-gray-600',
+        textLight: 'text-gray-200',
+        border: 'border-gray-500',
+        borderHover: 'border-gray-300'
+      }
+    };
+    return colorMap[color] || colorMap.indigo;
+  };
+
+  const isAdmin = currentAgent?.email === 'admin@playground.com';
+  const colors = getColorClasses(uxSettings.primaryColor);
 
   useEffect(() => {
     const savedConfig = {
@@ -378,66 +440,6 @@ const WriterSubmissionPortal = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const getColorClasses = (color) => {
-    const colorMap = {
-      indigo: {
-        bg: 'bg-indigo-600',
-        bgHover: 'bg-indigo-700',
-        bgDark: 'bg-indigo-800',
-        text: 'text-indigo-600',
-        textLight: 'text-indigo-200',
-        border: 'border-indigo-500',
-        borderHover: 'border-indigo-300'
-      },
-      blue: {
-        bg: 'bg-blue-600',
-        bgHover: 'bg-blue-700',
-        bgDark: 'bg-blue-800',
-        text: 'text-blue-600',
-        textLight: 'text-blue-200',
-        border: 'border-blue-500',
-        borderHover: 'border-blue-300'
-      },
-      purple: {
-        bg: 'bg-purple-600',
-        bgHover: 'bg-purple-700',
-        bgDark: 'bg-purple-800',
-        text: 'text-purple-600',
-        textLight: 'text-purple-200',
-        border: 'border-purple-500',
-        borderHover: 'border-purple-300'
-      },
-      green: {
-        bg: 'bg-green-600',
-        bgHover: 'bg-green-700',
-        bgDark: 'bg-green-800',
-        text: 'text-green-600',
-        textLight: 'text-green-200',
-        border: 'border-green-500',
-        borderHover: 'border-green-300'
-      },
-      red: {
-        bg: 'bg-red-600',
-        bgHover: 'bg-red-700',
-        bgDark: 'bg-red-800',
-        text: 'text-red-600',
-        textLight: 'text-red-200',
-        border: 'border-red-500',
-        borderHover: 'border-red-300'
-      },
-      gray: {
-        bg: 'bg-gray-600',
-        bgHover: 'bg-gray-700',
-        bgDark: 'bg-gray-800',
-        text: 'text-gray-600',
-        textLight: 'text-gray-200',
-        border: 'border-gray-500',
-        borderHover: 'border-gray-300'
-      }
-    };
-    return colorMap[color] || colorMap.indigo;
-  };
-
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -473,7 +475,7 @@ const WriterSubmissionPortal = () => {
             
             <button
               onClick={handleLogin}
-              className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-200 font-medium"
+              className={`w-full ${colors.bg} text-white py-3 px-6 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
             >
               Sign In
             </button>
@@ -501,7 +503,7 @@ const WriterSubmissionPortal = () => {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="font-medium">{currentAgent?.name}</p>
-                <p className="text-indigo-200 text-sm">{currentAgent?.agency}</p>
+                <p className={colors.textLight + " text-sm"}>{currentAgent?.agency}</p>
               </div>
               <button
                 onClick={handleLogout}
@@ -531,7 +533,7 @@ const WriterSubmissionPortal = () => {
                 onClick={() => setActiveTab('submit')}
                 className={`py-4 px-2 border-b-2 font-medium text-sm ${
                   activeTab === 'submit'
-                    ? 'border-indigo-500 text-indigo-600'
+                    ? `${colors.border} ${colors.text}`
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -543,7 +545,7 @@ const WriterSubmissionPortal = () => {
               onClick={() => setActiveTab('dashboard')}
               className={`py-4 px-2 border-b-2 font-medium text-sm ${
                 activeTab === 'dashboard'
-                  ? 'border-indigo-500 text-indigo-600'
+                  ? `${colors.border} ${colors.text}`
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -591,11 +593,188 @@ const WriterSubmissionPortal = () => {
         </div>
 
         <div className="p-6">
+          {activeTab === 'assignments' && (
+            <div>
+              {uxSettings.customWelcomeMessage && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-blue-800">{uxSettings.customWelcomeMessage}</p>
+                </div>
+              )}
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Open Writing Assignments</h2>
+              <div className="grid gap-6">
+                {projects.filter(p => p.status === 'Active').map(project => (
+                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-colors`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Genre:</span>
+                            <p className="text-gray-900">{project.genre}</p>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Tone:</span>
+                            <p className="text-gray-900">{project.tone}</p>
+                          </div>
+                          {uxSettings.showBudgetInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Budget:</span>
+                              <p className="text-gray-900">{project.budget}</p>
+                            </div>
+                          )}
+                          {uxSettings.showNetworkInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Network:</span>
+                              <p className="text-gray-900">{project.network}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right ml-4">
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                          {project.status}
+                        </span>
+                        {uxSettings.showDeadlines && (
+                          <p className="text-sm text-gray-500 mt-1">Deadline: {project.deadline}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 mb-4">{project.description}</p>
+                    
+                    {uxSettings.showRequirements && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
+                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                          {project.requirements.map((req, index) => (
+                            <li key={index}>{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => selectProject(project)}
+                      className={`${colors.bg} text-white px-6 py-2 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
+                    >
+                      Submit Writer for This Project
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'submit' && selectedProject && (
+            <div>
+              <div className={`mb-6 p-4 ${colors.textLight.replace('text-', 'bg-').replace('-200', '-50')} rounded-lg border border-indigo-200`}>
+                <h2 className="text-xl font-bold text-indigo-900 mb-2">Submitting for: {selectedProject.title}</h2>
+                <p className="text-indigo-700">{selectedProject.genre} • {selectedProject.network}</p>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Writer Name *</label>
+                    <input
+                      type="text"
+                      name="writerName"
+                      value={formData.writerName}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+                    <select
+                      name="availability"
+                      value={formData.availability}
+                      onChange={handleInputChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Select Availability</option>
+                      <option value="Immediate">Immediate</option>
+                      <option value="2-4 weeks">2-4 weeks</option>
+                      <option value="1-2 months">1-2 months</option>
+                      <option value="Post-current-project">After Current Project</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pitch Summary *</label>
+                  <textarea
+                    name="pitch_summary"
+                    value={formData.pitch_summary}
+                    onChange={handleInputChange}
+                    rows="6"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Why is this writer perfect for this specific project? Include relevant experience, previous credits, writing style, and how they match the project requirements..."
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Upload className="inline w-4 h-4 mr-2" />
+                      Upload CV
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => handleFileUpload(e, 'cv_file')}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <FileText className="inline w-4 h-4 mr-2" />
+                      Upload Sample Script
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.fdx,.fountain,.txt"
+                      onChange={(e) => handleFileUpload(e, 'sample_script')}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => {
+                      setSelectedProject(null);
+                      setActiveTab('assignments');
+                    }}
+                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Back to Assignments
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className={`flex-1 py-3 px-6 rounded-lg font-medium ${
+                      isSubmitting 
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                        : `${colors.bg} text-white hover:${colors.bgHover}`
+                    }`}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Writer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Admin Configuration Panels */}
           {showProjectConfig && isAdmin && (
             <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
               <h3 className="text-lg font-semibold text-orange-900 mb-4">Project Manager</h3>
               
-              {/* Existing Projects */}
               <div className="mb-6">
                 <h4 className="text-md font-semibold text-orange-800 mb-3">Existing Projects</h4>
                 <div className="space-y-2">
@@ -628,7 +807,6 @@ const WriterSubmissionPortal = () => {
                 </div>
               </div>
 
-              {/* Add/Edit Project Form */}
               <div className="border-t border-orange-200 pt-4">
                 <h4 className="text-md font-semibold text-orange-800 mb-3">
                   {editingProject ? 'Edit Project' : 'Add New Project'}
@@ -684,7 +862,8 @@ const WriterSubmissionPortal = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-orange-700 mb-1">Budget</label>
-                    <select
+                    <input
+                      type="text"
                       value={editingProject ? editingProject.budget : newProject.budget}
                       onChange={(e) => {
                         if (editingProject) {
@@ -694,16 +873,11 @@ const WriterSubmissionPortal = () => {
                         }
                       }}
                       className="w-full p-2 border border-orange-300 rounded"
-                    >
-                      <option value="">Select Budget</option>
-                      <option value="Low-Budget">Low-Budget</option>
-                      <option value="Mid-Budget">Mid-Budget</option>
-                      <option value="High-Budget">High-Budget</option>
-                      <option value="Premium">Premium</option>
-                    </select>
+                      placeholder="e.g., Mid-Budget"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-orange-700 mb-1">Network/Platform</label>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Network</label>
                     <input
                       type="text"
                       value={editingProject ? editingProject.network : newProject.network}
@@ -715,7 +889,7 @@ const WriterSubmissionPortal = () => {
                         }
                       }}
                       className="w-full p-2 border border-orange-300 rounded"
-                      placeholder="e.g., Netflix, HBO, CBS"
+                      placeholder="e.g., Premium Cable"
                     />
                   </div>
                   <div>
@@ -746,9 +920,9 @@ const WriterSubmissionPortal = () => {
                         setNewProject(prev => ({ ...prev, description: e.target.value }));
                       }
                     }}
-                    rows="3"
                     className="w-full p-2 border border-orange-300 rounded"
-                    placeholder="Detailed project description..."
+                    rows="3"
+                    placeholder="Project description..."
                   />
                 </div>
 
@@ -842,9 +1016,9 @@ const WriterSubmissionPortal = () => {
                     <textarea
                       value={uxSettings.customWelcomeMessage}
                       onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
-                      rows="3"
                       className="w-full p-2 border border-purple-300 rounded"
-                      placeholder="Optional welcome message for agents..."
+                      rows="3"
+                      placeholder="Optional welcome message for the assignments page..."
                     />
                   </div>
                 </div>
@@ -864,8 +1038,8 @@ const WriterSubmissionPortal = () => {
                       <option value="gray">Gray</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-purple-700">Show/Hide Elements</label>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Display Options</label>
                     <div className="space-y-2">
                       <label className="flex items-center">
                         <input
@@ -874,7 +1048,7 @@ const WriterSubmissionPortal = () => {
                           onChange={(e) => setUxSettings(prev => ({ ...prev, showDeadlines: e.target.checked }))}
                           className="mr-2"
                         />
-                        <span className="text-sm">Show Deadlines</span>
+                        Show Deadlines
                       </label>
                       <label className="flex items-center">
                         <input
@@ -883,7 +1057,7 @@ const WriterSubmissionPortal = () => {
                           onChange={(e) => setUxSettings(prev => ({ ...prev, showBudgetInfo: e.target.checked }))}
                           className="mr-2"
                         />
-                        <span className="text-sm">Show Budget Information</span>
+                        Show Budget Information
                       </label>
                       <label className="flex items-center">
                         <input
@@ -892,7 +1066,7 @@ const WriterSubmissionPortal = () => {
                           onChange={(e) => setUxSettings(prev => ({ ...prev, showNetworkInfo: e.target.checked }))}
                           className="mr-2"
                         />
-                        <span className="text-sm">Show Network Information</span>
+                        Show Network Information
                       </label>
                       <label className="flex items-center">
                         <input
@@ -901,37 +1075,18 @@ const WriterSubmissionPortal = () => {
                           onChange={(e) => setUxSettings(prev => ({ ...prev, showRequirements: e.target.checked }))}
                           className="mr-2"
                         />
-                        <span className="text-sm">Show Project Requirements</span>
+                        Show Requirements
                       </label>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={saveUxSettings}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                >
-                  Save UX Settings
-                </button>
-                <button
-                  onClick={() => setUxSettings({
-                    companyName: 'Playground Entertainment',
-                    portalTitle: 'Writer Submission Portal',
-                    loginMessage: 'Access Playground Entertainment\'s open writing assignments',
-                    primaryColor: 'indigo',
-                    showDeadlines: true,
-                    showBudgetInfo: true,
-                    showNetworkInfo: true,
-                    showRequirements: true,
-                    customWelcomeMessage: '',
-                    footerText: ''
-                  })}
-                  className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                >
-                  Reset to Default
-                </button>
-              </div>
+              <button
+                onClick={saveUxSettings}
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mt-4"
+              >
+                Save UX Settings
+              </button>
             </div>
           )}
 
@@ -976,182 +1131,6 @@ const WriterSubmissionPortal = () => {
               >
                 Save Configuration
               </button>
-            </div>
-          )}
-
-          {activeTab === 'assignments' && (
-            <div>
-              {uxSettings.customWelcomeMessage && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-800">{uxSettings.customWelcomeMessage}</p>
-                </div>
-              )}
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Open Writing Assignments</h2>
-              <div className="grid gap-6">
-                {projects.filter(p => p.status === 'Active').map(project => (
-                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-colors`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">Genre:</span>
-                            <p className="text-gray-900">{project.genre}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">Tone:</span>
-                            <p className="text-gray-900">{project.tone}</p>
-                          </div>
-                          {uxSettings.showBudgetInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Budget:</span>
-                              <p className="text-gray-900">{project.budget}</p>
-                            </div>
-                          )}
-                          {uxSettings.showNetworkInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Network:</span>
-                              <p className="text-gray-900">{project.network}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                          {project.status}
-                        </span>
-                        {uxSettings.showDeadlines && (
-                          <p className="text-sm text-gray-500 mt-1">Deadline: {project.deadline}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-700 mb-4">{project.description}</p>
-                    
-                    {uxSettings.showRequirements && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
-                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                          {project.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={() => selectProject(project)}
-                      className={`${colors.bg} text-white px-6 py-2 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
-                    >
-                      Submit Writer for This Project
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'submit' && selectedProject && (
-            <div>
-              <div className="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                <h2 className="text-xl font-bold text-indigo-900 mb-2">Submitting for: {selectedProject.title}</h2>
-                <p className="text-indigo-700">{selectedProject.genre} • {selectedProject.network}</p>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Writer Name *</label>
-                    <input
-                      type="text"
-                      name="writerName"
-                      value={formData.writerName}
-                      onChange={handleInputChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
-                    <select
-                      name="availability"
-                      value={formData.availability}
-                      onChange={handleInputChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">Select Availability</option>
-                      <option value="Immediate">Immediate</option>
-                      <option value="2-4 weeks">2-4 weeks</option>
-                      <option value="1-2 months">1-2 months</option>
-                      <option value="Post-current-project">After Current Project</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Pitch Summary *</label>
-                  <textarea
-                    name="pitch_summary"
-                    value={formData.pitch_summary}
-                    onChange={handleInputChange}
-                    rows="6"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Why is this writer perfect for this specific project? Include relevant experience, previous credits, writing style, and how they match the project requirements..."
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Upload className="inline w-4 h-4 mr-2" />
-                      Upload CV
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e, 'cv_file')}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <FileText className="inline w-4 h-4 mr-2" />
-                      Upload Sample Script
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.fdx,.fountain,.txt"
-                      onChange={(e) => handleFileUpload(e, 'sample_script')}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => {
-                      setSelectedProject(null);
-                      setActiveTab('assignments');
-                    }}
-                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    Back to Assignments
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className={`flex-1 py-3 px-6 rounded-lg font-medium ${
-                      isSubmitting 
-                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-                        : `${colors.bg} text-white hover:${colors.bgHover}`
-                    }`}
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit Writer'}
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1212,13 +1191,6 @@ const WriterSubmissionPortal = () => {
                                   {submission.overall_score}%
                                 </div>
                                 <p className="text-sm text-gray-500">Overall Match</p>
-                                <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${
-                                  submission.overall_score >= 80 ? 'bg-green-100 text-green-800' :
-                                  submission.overall_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {submission.overall_score >= 80 ? 'Strong Match' : submission.overall_score >= 60 ? 'Potential' : 'Weak Match'}
-                                </span>
                               </div>
                             </div>
 
@@ -1242,26 +1214,6 @@ const WriterSubmissionPortal = () => {
                               <div className="text-center">
                                 <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
                                 <p className="text-xs text-gray-500">Character Dev</p>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                              <div>
-                                <span className="font-medium text-gray-500">Availability:</span>
-                                <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-500">Email:</span>
-                                <p className="text-gray-700">{submission.email}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-500">Files:</span>
-                                <p className="text-gray-700">
-                                  {submission.cv_file ? '✓ CV' : ''}
-                                  {submission.cv_file && submission.sample_script ? ', ' : ''}
-                                  {submission.sample_script ? '✓ Script' : ''}
-                                  {!submission.cv_file && !submission.sample_script ? 'None' : ''}
-                                </p>
                               </div>
                             </div>
 
@@ -1301,22 +1253,6 @@ const WriterSubmissionPortal = () => {
                                 <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
                                   Under Review
                                 </span>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                              <div>
-                                <span className="font-medium text-gray-500">Availability:</span>
-                                <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-500">Files Uploaded:</span>
-                                <p className="text-gray-700">
-                                  {submission.cv_file ? '✓ CV' : ''}
-                                  {submission.cv_file && submission.sample_script ? ', ' : ''}
-                                  {submission.sample_script ? '✓ Script Sample' : ''}
-                                  {!submission.cv_file && !submission.sample_script ? 'None' : ''}
-                                </p>
                               </div>
                             </div>
 
