@@ -16,6 +16,20 @@ const WriterSubmissionPortal = () => {
   });
   const [showConfig, setShowConfig] = useState(false);
   const [showUXConfig, setShowUXConfig] = useState(false);
+  const [showProjectConfig, setShowProjectConfig] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [newProject, setNewProject] = useState({
+    title: '',
+    genre: '',
+    tone: '',
+    budget: '',
+    network: '',
+    description: '',
+    deadline: '',
+    status: 'Active',
+    requirements: []
+  });
+  const [newRequirement, setNewRequirement] = useState('');
   
   const [uxSettings, setUxSettings] = useState({
     companyName: 'Playground Entertainment',
@@ -37,7 +51,7 @@ const WriterSubmissionPortal = () => {
     { id: 4, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
   ];
 
-  const projects = [
+  const [projects, setProjects] = useState([
     {
       id: 1,
       title: "Dark Crime Drama",
@@ -62,7 +76,7 @@ const WriterSubmissionPortal = () => {
       status: "Active",
       requirements: ["Limited series experience", "Tech industry knowledge helpful", "Strong dialogue skills"]
     }
-  ];
+  ]);
 
   const [formData, setFormData] = useState({
     writerName: '',
@@ -138,6 +152,89 @@ const WriterSubmissionPortal = () => {
     localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
     setShowUXConfig(false);
     alert('UX settings saved! Changes will apply immediately.');
+  };
+
+  const addRequirement = () => {
+    if (newRequirement.trim()) {
+      if (editingProject) {
+        setEditingProject(prev => ({
+          ...prev,
+          requirements: [...prev.requirements, newRequirement.trim()]
+        }));
+      } else {
+        setNewProject(prev => ({
+          ...prev,
+          requirements: [...prev.requirements, newRequirement.trim()]
+        }));
+      }
+      setNewRequirement('');
+    }
+  };
+
+  const removeRequirement = (index) => {
+    if (editingProject) {
+      setEditingProject(prev => ({
+        ...prev,
+        requirements: prev.requirements.filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewProject(prev => ({
+        ...prev,
+        requirements: prev.requirements.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const saveProject = () => {
+    if (editingProject) {
+      setProjects(prev => prev.map(p => p.id === editingProject.id ? editingProject : p));
+      setEditingProject(null);
+      alert('Project updated!');
+    } else {
+      const project = {
+        ...newProject,
+        id: Date.now()
+      };
+      setProjects(prev => [...prev, project]);
+      setNewProject({
+        title: '',
+        genre: '',
+        tone: '',
+        budget: '',
+        network: '',
+        description: '',
+        deadline: '',
+        status: 'Active',
+        requirements: []
+      });
+      alert('Project created!');
+    }
+  };
+
+  const editProject = (project) => {
+    setEditingProject({ ...project });
+  };
+
+  const deleteProject = (projectId) => {
+    if (confirm('Are you sure you want to delete this project?')) {
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      alert('Project deleted!');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingProject(null);
+    setNewProject({
+      title: '',
+      genre: '',
+      tone: '',
+      budget: '',
+      network: '',
+      description: '',
+      deadline: '',
+      status: 'Active',
+      requirements: []
+    });
   };
 
   const handleInputChange = (e) => {
@@ -408,6 +505,17 @@ const WriterSubmissionPortal = () => {
                   Database Setup
                 </button>
                 <button
+                  onClick={() => setShowProjectConfig(!showProjectConfig)}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm ${
+                    showProjectConfig
+                      ? 'border-orange-500 text-orange-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Briefcase className="inline w-4 h-4 mr-2" />
+                  Project Manager
+                </button>
+                <button
                   onClick={() => setShowUXConfig(!showUXConfig)}
                   className={`py-4 px-2 border-b-2 font-medium text-sm ${
                     showUXConfig
@@ -424,6 +532,220 @@ const WriterSubmissionPortal = () => {
         </div>
 
         <div className="p-6">
+          {showProjectConfig && isAdmin && (
+            <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <h3 className="text-lg font-semibold text-orange-900 mb-4">Project Manager</h3>
+              
+              {/* Existing Projects */}
+              <div className="mb-6">
+                <h4 className="text-md font-semibold text-orange-800 mb-3">Existing Projects</h4>
+                <div className="space-y-2">
+                  {projects.map(project => (
+                    <div key={project.id} className="flex justify-between items-center p-3 bg-white rounded border">
+                      <div>
+                        <span className="font-medium">{project.title}</span>
+                        <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                          project.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {project.status}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => editProject(project)}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteProject(project.id)}
+                          className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add/Edit Project Form */}
+              <div className="border-t border-orange-200 pt-4">
+                <h4 className="text-md font-semibold text-orange-800 mb-3">
+                  {editingProject ? 'Edit Project' : 'Add New Project'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Project Title *</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.title : newProject.title}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, title: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, title: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                      placeholder="e.g., Dark Crime Drama"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Genre</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.genre : newProject.genre}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, genre: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, genre: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                      placeholder="e.g., Crime Drama"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Tone</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.tone : newProject.tone}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, tone: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, tone: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                      placeholder="e.g., Dark, Gritty"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Budget</label>
+                    <select
+                      value={editingProject ? editingProject.budget : newProject.budget}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, budget: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, budget: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                    >
+                      <option value="">Select Budget</option>
+                      <option value="Low-Budget">Low-Budget</option>
+                      <option value="Mid-Budget">Mid-Budget</option>
+                      <option value="High-Budget">High-Budget</option>
+                      <option value="Premium">Premium</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Network/Platform</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.network : newProject.network}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, network: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, network: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                      placeholder="e.g., Netflix, HBO, CBS"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-orange-700 mb-1">Deadline</label>
+                    <input
+                      type="date"
+                      value={editingProject ? editingProject.deadline : newProject.deadline}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, deadline: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, deadline: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-2 border border-orange-300 rounded"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-orange-700 mb-1">Description</label>
+                  <textarea
+                    value={editingProject ? editingProject.description : newProject.description}
+                    onChange={(e) => {
+                      if (editingProject) {
+                        setEditingProject(prev => ({ ...prev, description: e.target.value }));
+                      } else {
+                        setNewProject(prev => ({ ...prev, description: e.target.value }));
+                      }
+                    }}
+                    rows="3"
+                    className="w-full p-2 border border-orange-300 rounded"
+                    placeholder="Detailed project description..."
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-orange-700 mb-2">Project Requirements</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newRequirement}
+                      onChange={(e) => setNewRequirement(e.target.value)}
+                      className="flex-1 p-2 border border-orange-300 rounded"
+                      placeholder="Add a requirement..."
+                      onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    />
+                    <button
+                      onClick={addRequirement}
+                      className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {(editingProject ? editingProject.requirements : newProject.requirements).map((req, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
+                        <span className="text-sm">{req}</span>
+                        <button
+                          onClick={() => removeRequirement(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={saveProject}
+                    className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+                  >
+                    {editingProject ? 'Update Project' : 'Create Project'}
+                  </button>
+                  {editingProject && (
+                    <button
+                      onClick={cancelEdit}
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {showUXConfig && isAdmin && (
             <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
               <h3 className="text-lg font-semibold text-purple-900 mb-4">Agent UX Designer</h3>
