@@ -22,7 +22,8 @@ const WriterSubmissionPortal = () => {
     { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
     { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME' },
     { id: 3, email: 'agent@uta.com', password: 'demo123', name: 'Lisa Rodriguez', agency: 'UTA' },
-    { id: 4, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' }
+    { id: 4, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
+    { id: 5, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
   ];
 
   const [projects, setProjects] = useState([
@@ -387,7 +388,7 @@ const WriterSubmissionPortal = () => {
               <Search className="inline w-4 h-4 mr-2" />
               My Submissions
             </button>
-            {currentAgent?.email === 'demo@agent.com' && (
+            {currentAgent?.email === 'admin@playground.com' && (
               <button
                 onClick={() => setShowConfig(!showConfig)}
                 className={`py-4 px-2 border-b-2 font-medium text-sm ${
@@ -623,7 +624,7 @@ const WriterSubmissionPortal = () => {
                 <div className="space-y-4">
                   {submissions
                     .filter(s => s.email === currentAgent?.email)
-                    .sort((a, b) => b.overall_score - a.overall_score)
+                    .sort((a, b) => new Date(b.submission_date) - new Date(a.submission_date))
                     .map(submission => (
                       <div key={submission.id} className="bg-white border rounded-lg p-6 shadow-sm">
                         <div className="flex justify-between items-start mb-4">
@@ -633,38 +634,31 @@ const WriterSubmissionPortal = () => {
                             <p className="text-sm text-gray-500">Submitted: {submission.submission_date}</p>
                           </div>
                           <div className="text-right">
-                            <div className={`text-2xl font-bold ${submission.overall_score >= 80 ? 'text-green-600' : submission.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                              {submission.overall_score}%
-                            </div>
-                            <p className="text-sm text-gray-500">Overall Match</p>
+                            <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                              Under Review
+                            </span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
-                            <p className="text-xs text-gray-500">Genre</p>
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                          <div>
+                            <span className="font-medium text-gray-500">Availability:</span>
+                            <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
                           </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
-                            <p className="text-xs text-gray-500">Tone</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
-                            <p className="text-xs text-gray-500">Dialogue</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
-                            <p className="text-xs text-gray-500">Structure</p>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
-                            <p className="text-xs text-gray-500">Character</p>
+                          <div>
+                            <span className="font-medium text-gray-500">Files Uploaded:</span>
+                            <p className="text-gray-700">
+                              {submission.cv_file ? '✓ CV' : ''}
+                              {submission.cv_file && submission.sample_script ? ', ' : ''}
+                              {submission.sample_script ? '✓ Script Sample' : ''}
+                              {!submission.cv_file && !submission.sample_script ? 'None' : ''}
+                            </p>
                           </div>
                         </div>
 
                         {submission.pitch_summary && (
                           <div className="mt-4 p-3 bg-gray-50 rounded">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Your Pitch:</h4>
                             <p className="text-sm text-gray-700">{submission.pitch_summary}</p>
                           </div>
                         )}
