@@ -9,7 +9,6 @@ const WriterSubmissionPortal = () => {
   const [submissions, setSubmissions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  
   const [airtableConfig, setAirtableConfig] = useState({
     baseId: '',
     tableId: '',
@@ -17,16 +16,14 @@ const WriterSubmissionPortal = () => {
   });
   const [showConfig, setShowConfig] = useState(false);
 
-  // Demo agents
   const agents = [
     { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
     { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME' },
-    { id: 3, email: 'agent@uta.com', password: 'demo123', name: 'Lisa Rodriguez', agency: 'UTA' },
-    { id: 4, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
-    { id: 5, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
+    { id: 3, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
+    { id: 4, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
   ];
 
-  const [projects, setProjects] = useState([
+  const projects = [
     {
       id: 1,
       title: "Dark Crime Drama",
@@ -34,7 +31,7 @@ const WriterSubmissionPortal = () => {
       tone: "Dark, Gritty",
       budget: "Mid-Budget",
       network: "Premium Cable",
-      description: "Neo-noir crime series set in modern Detroit. Focus on corrupt police and organized crime. Looking for writers with experience in procedural drama and complex character development.",
+      description: "Neo-noir crime series set in modern Detroit. Focus on corrupt police and organized crime.",
       deadline: "2025-09-15",
       status: "Active",
       requirements: ["3+ years TV writing experience", "Crime/thriller background preferred", "Available for 6-month commitment"]
@@ -46,38 +43,21 @@ const WriterSubmissionPortal = () => {
       tone: "Contemporary, Suspenseful",
       budget: "High-Budget",
       network: "Streaming Platform",
-      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley. Need writers who understand both technology and human psychology.",
+      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley.",
       deadline: "2025-08-30",
       status: "Active",
       requirements: ["Limited series experience", "Tech industry knowledge helpful", "Strong dialogue skills"]
-    },
-    {
-      id: 3,
-      title: "Historical Medical Drama",
-      genre: "Period Drama",
-      tone: "Emotional, Authentic",
-      budget: "Mid-Budget",
-      network: "Broadcast Network",
-      description: "Set in 1960s hospital. Focusing on social change, medical breakthroughs, and personal relationships. Need writers who can balance historical accuracy with compelling storytelling.",
-      deadline: "2025-10-01",
-      status: "Active",
-      requirements: ["Period piece experience", "Medical drama background", "Research-oriented approach"]
     }
-  ]);
+  ];
 
   const [formData, setFormData] = useState({
     writerName: '',
-    agentName: '',
-    agentCompany: '',
-    email: '',
-    projectInterest: '',
     availability: '',
     cv_file: null,
     sample_script: null,
     pitch_summary: ''
   });
 
-  // Load config and check login
   useEffect(() => {
     const savedConfig = {
       baseId: localStorage.getItem('airtableBaseId') || '',
@@ -100,16 +80,10 @@ const WriterSubmissionPortal = () => {
     if (agent) {
       setCurrentAgent(agent);
       setIsLoggedIn(true);
-      setFormData(prev => ({
-        ...prev,
-        agentName: agent.name,
-        agentCompany: agent.agency,
-        email: agent.email
-      }));
       localStorage.setItem('currentAgent', JSON.stringify(agent));
       setLoginData({ email: '', password: '' });
     } else {
-      alert('Invalid credentials. Try: demo@agent.com / demo');
+      alert('Invalid credentials. Try: demo@agent.com / demo or admin@playground.com / admin123');
     }
   };
 
@@ -121,10 +95,6 @@ const WriterSubmissionPortal = () => {
     localStorage.removeItem('currentAgent');
     setFormData({
       writerName: '',
-      agentName: '',
-      agentCompany: '',
-      email: '',
-      projectInterest: '',
       availability: '',
       cv_file: null,
       sample_script: null,
@@ -134,10 +104,6 @@ const WriterSubmissionPortal = () => {
 
   const selectProject = (project) => {
     setSelectedProject(project);
-    setFormData(prev => ({
-      ...prev,
-      projectInterest: project.title
-    }));
     setActiveTab('submit');
   };
 
@@ -167,7 +133,7 @@ const WriterSubmissionPortal = () => {
 
   const submitToAirtable = async (submissionData) => {
     if (!airtableConfig.baseId || !airtableConfig.apiKey) {
-      throw new Error('Airtable configuration missing. Please configure Airtable settings.');
+      throw new Error('Airtable configuration missing');
     }
 
     const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${airtableConfig.tableId}`;
@@ -177,8 +143,8 @@ const WriterSubmissionPortal = () => {
         fields: {
           "Writer Name": submissionData.writerName,
           "Agent Name": submissionData.agentName,
-          "Agency": submissionData.agentCompany || '',
-          "Email": submissionData.email || '',
+          "Agency": submissionData.agentCompany,
+          "Email": submissionData.email,
           "Project": submissionData.projectInterest,
           "Availability": submissionData.availability || '',
           "Pitch Summary": submissionData.pitch_summary || '',
@@ -207,22 +173,21 @@ const WriterSubmissionPortal = () => {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Airtable API Error: ${error.error?.message || 'Unknown error'}`);
+      throw new Error(`Airtable Error: ${error.error?.message || 'Unknown error'}`);
     }
 
     return response.json();
   };
 
   const handleSubmit = async () => {
-    if (!formData.writerName || !selectedProject) {
-      alert('Please fill in required fields');
+    if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
+      alert('Please fill in Writer Name and Pitch Summary');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Simulate script analysis
       const mockAnalysis = {
         genre_match: Math.floor(Math.random() * 30) + 70,
         tone_match: Math.floor(Math.random() * 30) + 65,
@@ -248,28 +213,17 @@ const WriterSubmissionPortal = () => {
         projectId: selectedProject.id
       };
 
-      // Submit to Airtable
       if (airtableConfig.baseId && airtableConfig.apiKey) {
         await submitToAirtable(submissionData);
         alert('Successfully submitted! Thank you for your submission.');
       } else {
-        alert('Submission recorded! (Airtable not configured)');
+        alert('Submission recorded!');
       }
 
-      // Also keep local copy for dashboard
       setSubmissions(prev => [...prev, submissionData]);
       
-      console.log('Submission added:', submissionData);
-      console.log('Current agent email:', currentAgent.email);
-      console.log('All submissions:', [...submissions, submissionData]);
-      
-      // Reset form but keep agent info
       setFormData({
         writerName: '',
-        agentName: currentAgent.name,
-        agentCompany: currentAgent.agency,
-        email: currentAgent.email,
-        projectInterest: '',
         availability: '',
         cv_file: null,
         sample_script: null,
@@ -277,17 +231,32 @@ const WriterSubmissionPortal = () => {
       });
 
       setSelectedProject(null);
-      setActiveTab('assignments');
+      setActiveTab('dashboard');
       
     } catch (error) {
       alert(`Submission failed: ${error.message}`);
-      console.error('Submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Login Screen
+  const generateReport = () => {
+    const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
+    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Submission Date\n";
+    sortedSubmissions.forEach(sub => {
+      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability}",${sub.overall_score},${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},"${sub.submission_date}"\n`;
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `writer_submissions_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const isAdmin = currentAgent?.email === 'admin@playground.com';
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -330,8 +299,8 @@ const WriterSubmissionPortal = () => {
 
             <div className="text-center text-sm text-gray-500">
               <p>Demo credentials:</p>
-              <p><strong>Email:</strong> demo@agent.com</p>
-              <p><strong>Password:</strong> demo</p>
+              <p><strong>Agent:</strong> demo@agent.com / demo</p>
+              <p><strong>Admin:</strong> admin@playground.com / admin123</p>
             </div>
           </div>
         </div>
@@ -339,7 +308,6 @@ const WriterSubmissionPortal = () => {
     );
   }
 
-  // Main Agent Dashboard
   return (
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg">
@@ -399,9 +367,9 @@ const WriterSubmissionPortal = () => {
               }`}
             >
               <Search className="inline w-4 h-4 mr-2" />
-              My Submissions
+              {isAdmin ? 'All Submissions' : 'My Submissions'}
             </button>
-            {currentAgent?.email === 'admin@playground.com' && (
+            {isAdmin && (
               <button
                 onClick={() => setShowConfig(!showConfig)}
                 className={`py-4 px-2 border-b-2 font-medium text-sm ${
@@ -418,7 +386,7 @@ const WriterSubmissionPortal = () => {
         </div>
 
         <div className="p-6">
-          {showConfig && (
+          {showConfig && isAdmin && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="text-lg font-semibold text-blue-900 mb-4">Airtable Configuration</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -429,7 +397,7 @@ const WriterSubmissionPortal = () => {
                     value={airtableConfig.baseId}
                     onChange={(e) => setAirtableConfig(prev => ({ ...prev, baseId: e.target.value }))}
                     placeholder="app..."
-                    className="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-blue-300 rounded"
                   />
                 </div>
                 <div>
@@ -439,7 +407,7 @@ const WriterSubmissionPortal = () => {
                     value={airtableConfig.tableId}
                     onChange={(e) => setAirtableConfig(prev => ({ ...prev, tableId: e.target.value }))}
                     placeholder="tblWriterSubmissions"
-                    className="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-blue-300 rounded"
                   />
                 </div>
                 <div>
@@ -449,7 +417,7 @@ const WriterSubmissionPortal = () => {
                     value={airtableConfig.apiKey}
                     onChange={(e) => setAirtableConfig(prev => ({ ...prev, apiKey: e.target.value }))}
                     placeholder="pat..."
-                    className="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-blue-300 rounded"
                   />
                 </div>
               </div>
@@ -469,7 +437,7 @@ const WriterSubmissionPortal = () => {
                 {projects.filter(p => p.status === 'Active').map(project => (
                   <div key={project.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-indigo-300 transition-colors">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                           <div>
@@ -490,7 +458,7 @@ const WriterSubmissionPortal = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-4">
                         <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                           {project.status}
                         </span>
@@ -582,7 +550,7 @@ const WriterSubmissionPortal = () => {
                       type="file"
                       accept=".pdf,.doc,.docx"
                       onChange={(e) => handleFileUpload(e, 'cv_file')}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full p-3 border border-gray-300 rounded-lg"
                     />
                   </div>
                   <div>
@@ -594,7 +562,7 @@ const WriterSubmissionPortal = () => {
                       type="file"
                       accept=".pdf,.fdx,.fountain,.txt"
                       onChange={(e) => handleFileUpload(e, 'sample_script')}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full p-3 border border-gray-300 rounded-lg"
                     />
                   </div>
                 </div>
@@ -605,14 +573,14 @@ const WriterSubmissionPortal = () => {
                       setSelectedProject(null);
                       setActiveTab('assignments');
                     }}
-                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200"
+                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     Back to Assignments
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`flex-1 py-3 px-6 rounded-lg font-medium transition duration-200 ${
+                    className={`flex-1 py-3 px-6 rounded-lg font-medium ${
                       isSubmitting 
                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
                         : 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -627,59 +595,179 @@ const WriterSubmissionPortal = () => {
 
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
-              <div className="mb-4 text-sm text-gray-600">
-                Showing submissions for: {currentAgent?.email}
-              </div>
-              {submissions.filter(s => s.email === currentAgent?.email).length === 0 ? (
-                <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No submissions yet. Submit writers from the Open Assignments tab.</p>
+              {isAdmin ? (
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">All Submissions & Analysis</h2>
+                    <button
+                      onClick={generateReport}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Export to Excel
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
+                      <p className="text-2xl font-bold text-blue-900">{submissions.length}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-green-700">High Scores (80+)</h3>
+                      <p className="text-2xl font-bold text-green-900">{submissions.filter(s => s.overall_score >= 80).length}</p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-purple-700">Crime Drama</h3>
+                      <p className="text-2xl font-bold text-purple-900">{submissions.filter(s => s.projectInterest === 'Dark Crime Drama').length}</p>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-orange-700">Tech Thriller</h3>
+                      <p className="text-2xl font-bold text-orange-900">{submissions.filter(s => s.projectInterest === 'Tech Thriller Limited Series').length}</p>
+                    </div>
+                  </div>
+
+                  {submissions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No submissions yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {submissions
+                        .sort((a, b) => b.overall_score - a.overall_score)
+                        .map(submission => (
+                          <div key={submission.id} className="bg-white border rounded-lg p-6 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
+                                <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
+                                <p className="text-sm text-gray-500">Project: {submission.projectInterest}</p>
+                                <p className="text-sm text-gray-500">Date: {submission.submission_date}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className={`text-3xl font-bold ${submission.overall_score >= 80 ? 'text-green-600' : submission.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                  {submission.overall_score}%
+                                </div>
+                                <p className="text-sm text-gray-500">Overall Match</p>
+                                <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${
+                                  submission.overall_score >= 80 ? 'bg-green-100 text-green-800' :
+                                  submission.overall_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {submission.overall_score >= 80 ? 'Strong Match' : submission.overall_score >= 60 ? 'Potential' : 'Weak Match'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
+                                <p className="text-xs text-gray-500">Genre Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
+                                <p className="text-xs text-gray-500">Tone Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
+                                <p className="text-xs text-gray-500">Dialogue Quality</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
+                                <p className="text-xs text-gray-500">Structure</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
+                                <p className="text-xs text-gray-500">Character Dev</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                              <div>
+                                <span className="font-medium text-gray-500">Availability:</span>
+                                <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500">Email:</span>
+                                <p className="text-gray-700">{submission.email}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500">Files:</span>
+                                <p className="text-gray-700">
+                                  {submission.cv_file ? '✓ CV' : ''}
+                                  {submission.cv_file && submission.sample_script ? ', ' : ''}
+                                  {submission.sample_script ? '✓ Script' : ''}
+                                  {!submission.cv_file && !submission.sample_script ? 'None' : ''}
+                                </p>
+                              </div>
+                            </div>
+
+                            {submission.pitch_summary && (
+                              <div className="mt-4 p-3 bg-gray-50 rounded">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Agent Pitch:</h4>
+                                <p className="text-sm text-gray-700">{submission.pitch_summary}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {submissions
-                    .filter(s => s.email === currentAgent?.email)
-                    .sort((a, b) => new Date(b.submission_date) - new Date(a.submission_date))
-                    .map(submission => (
-                      <div key={submission.id} className="bg-white border rounded-lg p-6 shadow-sm">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
-                            <p className="text-gray-600">Project: {submission.projectInterest}</p>
-                            <p className="text-sm text-gray-500">Submitted: {submission.submission_date}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-                              Under Review
-                            </span>
-                          </div>
-                        </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
+                  {submissions.filter(s => s.email === currentAgent?.email).length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No submissions yet. Submit writers from the Open Assignments tab.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {submissions
+                        .filter(s => s.email === currentAgent?.email)
+                        .sort((a, b) => new Date(b.submission_date) - new Date(a.submission_date))
+                        .map(submission => (
+                          <div key={submission.id} className="bg-white border rounded-lg p-6 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
+                                <p className="text-gray-600">Project: {submission.projectInterest}</p>
+                                <p className="text-sm text-gray-500">Submitted: {submission.submission_date}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
+                                  Under Review
+                                </span>
+                              </div>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                          <div>
-                            <span className="font-medium text-gray-500">Availability:</span>
-                            <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-500">Files Uploaded:</span>
-                            <p className="text-gray-700">
-                              {submission.cv_file ? '✓ CV' : ''}
-                              {submission.cv_file && submission.sample_script ? ', ' : ''}
-                              {submission.sample_script ? '✓ Script Sample' : ''}
-                              {!submission.cv_file && !submission.sample_script ? 'None' : ''}
-                            </p>
-                          </div>
-                        </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                              <div>
+                                <span className="font-medium text-gray-500">Availability:</span>
+                                <p className="text-gray-700">{submission.availability || 'Not specified'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-500">Files Uploaded:</span>
+                                <p className="text-gray-700">
+                                  {submission.cv_file ? '✓ CV' : ''}
+                                  {submission.cv_file && submission.sample_script ? ', ' : ''}
+                                  {submission.sample_script ? '✓ Script Sample' : ''}
+                                  {!submission.cv_file && !submission.sample_script ? 'None' : ''}
+                                </p>
+                              </div>
+                            </div>
 
-                        {submission.pitch_summary && (
-                          <div className="mt-4 p-3 bg-gray-50 rounded">
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Your Pitch:</h4>
-                            <p className="text-sm text-gray-700">{submission.pitch_summary}</p>
+                            {submission.pitch_summary && (
+                              <div className="mt-4 p-3 bg-gray-50 rounded">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Your Pitch:</h4>
+                                <p className="text-sm text-gray-700">{submission.pitch_summary}</p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
