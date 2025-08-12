@@ -1,706 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
-
-const WriterSubmissionPortal = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentAgent, setCurrentAgent] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [activeTab, setActiveTab] = useState('assignments');
-  const [submissions, setSubmissions] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [airtableConfig, setAirtableConfig] = useState({
-    baseId: '',
-    tableId: '',
-    apiKey: ''
-  });
-  const [showConfig, setShowConfig] = useState(false);
-  const [showUXConfig, setShowUXConfig] = useState(false);
-  const [showProjectConfig, setShowProjectConfig] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
-  const [newProject, setNewProject] = useState({
-    title: '',
-    genre: '',
-    tone: '',
-    budget: '',
-    network: '',
-    description: '',
-    deadline: '',
-    status: 'Active',
-    requirements: []
-  });
-  const [newRequirement, setNewRequirement] = useState('');
-  
-  const [uxSettings, setUxSettings] = useState({
-    companyName: 'Playground Entertainment',
-    portalTitle: 'Writer Submission Portal',
-    loginMessage: 'Access Playground Entertainment\'s open writing assignments',
-    primaryColor: 'indigo',
-    showDeadlines: true,
-    showBudgetInfo: true,
-    showNetworkInfo: true,
-    showRequirements: true,
-    customWelcomeMessage: '',
-    footerText: ''
-  });
-
-  // New state for enhanced dashboard
-  const [submissionFilter, setSubmissionFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('overall_score');
-  const [expandedAnalysis, setExpandedAnalysis] = useState({});
-
-  const agents = [
-    { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
-    { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME' },
-    { id: 3, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
-    { id: 4, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
-  ];
-
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: "Dark Crime Drama",
-      genre: "Crime Drama",
-      tone: "Dark, Gritty",
-      budget: "Mid-Budget",
-      network: "Premium Cable",
-      description: "Neo-noir crime series set in modern Detroit. Focus on corrupt police and organized crime.",
-      deadline: "2025-09-15",
-      status: "Active",
-      requirements: ["3+ years TV writing experience", "Crime/thriller background preferred", "Available for 6-month commitment"]
-    },
-    {
-      id: 2,
-      title: "Tech Thriller Limited Series",
-      genre: "Thriller/Sci-Fi",
-      tone: "Contemporary, Suspenseful",
-      budget: "High-Budget",
-      network: "Streaming Platform",
-      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley.",
-      deadline: "2025-08-30",
-      status: "Active",
-      requirements: ["Limited series experience", "Tech industry knowledge helpful", "Strong dialogue skills"]
-    }
-  ]);
-
-  const [formData, setFormData] = useState({
-    writerName: '',
-    availability: '',
-    cv_file: null,
-    sample_script: null,
-    pitch_summary: ''
-  });
-
-  const getColorClasses = (color) => {
-    const colorMap = {
-      indigo: {
-        bg: 'bg-indigo-600',
-        bgHover: 'bg-indigo-700',
-        bgDark: 'bg-indigo-800',
-        text: 'text-indigo-600',
-        textLight: 'text-indigo-200',
-        border: 'border-indigo-500',
-        borderHover: 'border-indigo-300'
-      },
-      blue: {
-        bg: 'bg-blue-600',
-        bgHover: 'bg-blue-700',
-        bgDark: 'bg-blue-800',
-        text: 'text-blue-600',
-        textLight: 'text-blue-200',
-        border: 'border-blue-500',
-        borderHover: 'border-blue-300'
-      },
-      purple: {
-        bg: 'bg-purple-600',
-        bgHover: 'bg-purple-700',
-        bgDark: 'bg-purple-800',
-        text: 'text-purple-600',
-        textLight: 'text-purple-200',
-        border: 'border-purple-500',
-        borderHover: 'border-purple-300'
-      },
-      green: {
-        bg: 'bg-green-600',
-        bgHover: 'bg-green-700',
-        bgDark: 'bg-green-800',
-        text: 'text-green-600',
-        textLight: 'text-green-200',
-        border: 'border-green-500',
-        borderHover: 'border-green-300'
-      },
-      red: {
-        bg: 'bg-red-600',
-        bgHover: 'bg-red-700',
-        bgDark: 'bg-red-800',
-        text: 'text-red-600',
-        textLight: 'text-red-200',
-        border: 'border-red-500',
-        borderHover: 'border-red-300'
-      },
-      gray: {
-        bg: 'bg-gray-600',
-        bgHover: 'bg-gray-700',
-        bgDark: 'bg-gray-800',
-        text: 'text-gray-600',
-        textLight: 'text-gray-200',
-        border: 'border-gray-500',
-        borderHover: 'border-gray-300'
-      }
-    };
-    return colorMap[color] || colorMap.indigo;
-  };
-
-  const isAdmin = currentAgent?.email === 'admin@playground.com';
-  const colors = getColorClasses(uxSettings.primaryColor);
-
-  useEffect(() => {
-    const savedConfig = {
-      baseId: localStorage.getItem('airtableBaseId') || '',
-      tableId: localStorage.getItem('airtableTableId') || 'tblWriterSubmissions',
-      apiKey: localStorage.getItem('airtableApiKey') || ''
-    };
-    setAirtableConfig(savedConfig);
-
-    const savedUxSettings = localStorage.getItem('uxSettings');
-    if (savedUxSettings) {
-      setUxSettings(JSON.parse(savedUxSettings));
-    }
-
-    const savedAgent = localStorage.getItem('currentAgent');
-    if (savedAgent) {
-      setCurrentAgent(JSON.parse(savedAgent));
-      setIsLoggedIn(true);
-    }
-  }, []);
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const agent = agents.find(a => a.email === loginData.email && a.password === loginData.password);
-    
-    if (agent) {
-      setCurrentAgent(agent);
-      setIsLoggedIn(true);
-      localStorage.setItem('currentAgent', JSON.stringify(agent));
-      setLoginData({ email: '', password: '' });
-    } else {
-      alert('Invalid credentials. Try: demo@agent.com / demo or admin@playground.com / admin123');
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentAgent(null);
-    setSelectedProject(null);
-    setActiveTab('assignments');
-    localStorage.removeItem('currentAgent');
-    setFormData({
-      writerName: '',
-      availability: '',
-      cv_file: null,
-      sample_script: null,
-      pitch_summary: ''
-    });
-  };
-
-  const selectProject = (project) => {
-    setSelectedProject(project);
-    setActiveTab('submit');
-  };
-
-  const saveAirtableConfig = () => {
-    localStorage.setItem('airtableBaseId', airtableConfig.baseId);
-    localStorage.setItem('airtableTableId', airtableConfig.tableId);
-    localStorage.setItem('airtableApiKey', airtableConfig.apiKey);
-    setShowConfig(false);
-    alert('Airtable configuration saved!');
-  };
-
-  const saveUxSettings = () => {
-    localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
-    setShowUXConfig(false);
-    alert('UX settings saved! Changes will apply immediately.');
-  };
-
-  const addRequirement = () => {
-    if (newRequirement.trim()) {
-      if (editingProject) {
-        setEditingProject(prev => ({
-          ...prev,
-          requirements: [...prev.requirements, newRequirement.trim()]
-        }));
-      } else {
-        setNewProject(prev => ({
-          ...prev,
-          requirements: [...prev.requirements, newRequirement.trim()]
-        }));
-      }
-      setNewRequirement('');
-    }
-  };
-
-  const removeRequirement = (index) => {
-    if (editingProject) {
-      setEditingProject(prev => ({
-        ...prev,
-        requirements: prev.requirements.filter((_, i) => i !== index)
-      }));
-    } else {
-      setNewProject(prev => ({
-        ...prev,
-        requirements: prev.requirements.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const saveProject = () => {
-    if (editingProject) {
-      setProjects(prev => prev.map(p => p.id === editingProject.id ? editingProject : p));
-      setEditingProject(null);
-      alert('Project updated!');
-    } else {
-      const project = {
-        ...newProject,
-        id: Date.now()
-      };
-      setProjects(prev => [...prev, project]);
-      setNewProject({
-        title: '',
-        genre: '',
-        tone: '',
-        budget: '',
-        network: '',
-        description: '',
-        deadline: '',
-        status: 'Active',
-        requirements: []
-      });
-      alert('Project created!');
-    }
-  };
-
-  const editProject = (project) => {
-    setEditingProject({ ...project });
-  };
-
-  const deleteProject = (projectId) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      alert('Project deleted!');
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingProject(null);
-    setNewProject({
-      title: '',
-      genre: '',
-      tone: '',
-      budget: '',
-      network: '',
-      description: '',
-      deadline: '',
-      status: 'Active',
-      requirements: []
-    });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleFileUpload = (e, fileType) => {
-    const file = e.target.files[0];
-    setFormData(prev => ({
-      ...prev,
-      [fileType]: file
-    }));
-  };
-
-  // Enhanced AI Analysis Functions
-  const analyzeScriptAndCV = async (cvFile, scriptFile, projectRequirements, projectGenre, projectTone) => {
-    try {
-      // Read files as base64
-      const readFileAsBase64 = (file) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result.split(",")[1];
-            resolve(base64);
-          };
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
-      };
-
-      let cvContent = null;
-      let scriptContent = null;
-
-      // Read CV if provided
-      if (cvFile) {
-        try {
-          cvContent = await readFileAsBase64(cvFile);
-        } catch (error) {
-          console.warn('Could not read CV file:', error);
-        }
-      }
-
-      // Read script if provided
-      if (scriptFile) {
-        try {
-          scriptContent = await readFileAsBase64(scriptFile);
-        } catch (error) {
-          console.warn('Could not read script file:', error);
-        }
-      }
-
-      // Prepare messages for Claude API
-      const messages = [];
-      
-      // Add system prompt with analysis criteria
-      messages.push({
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `You are an expert television script analyst and development executive. Analyze the provided CV and script sample for a ${projectGenre} project with a ${projectTone} tone.
-
-PROJECT REQUIREMENTS:
-${projectRequirements.map(req => `- ${req}`).join('\n')}
-
-PROJECT DETAILS:
-- Genre: ${projectGenre}
-- Tone: ${projectTone}
-
-ANALYSIS CRITERIA:
-1. GENRE MATCH (0-100): How well does the writer's experience and script sample match the ${projectGenre} genre?
-2. TONE MATCH (0-100): How well does the writing style match the ${projectTone} tone?
-3. DIALOGUE QUALITY (0-100): Quality of dialogue - natural, character-specific, engaging
-4. STRUCTURE SCORE (0-100): Story structure, pacing, scene transitions, professional formatting
-5. CHARACTER DEVELOPMENT (0-100): Character depth, motivation, distinctive voices
-6. EXPERIENCE RELEVANCE (0-100): How relevant is their past TV/film experience to this project?
-
-PROVIDE YOUR RESPONSE AS A VALID JSON OBJECT IN THIS EXACT FORMAT:
-{
-  "genre_match": 85,
-  "tone_match": 78,
-  "dialogue_quality": 92,
-  "structure_score": 88,
-  "character_development": 80,
-  "experience_relevance": 75,
-  "overall_score": 83,
-  "detailed_analysis": {
-    "cv_highlights": "Brief summary of most relevant experience",
-    "script_strengths": "Key strengths in the script sample",
-    "script_weaknesses": "Areas for improvement",
-    "genre_fit_reasoning": "Why this writer fits/doesn't fit the genre",
-    "tone_fit_reasoning": "How well they match the required tone",
-    "recommendation": "RECOMMEND/CONSIDER/PASS with brief reasoning"
-  }
-}
-
-DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
-          }
-        ]
-      });
-
-      // Add CV to analysis if available
-      if (cvContent) {
-        messages[0].content.push({
-          type: "document",
-          source: {
-            type: "base64",
-            media_type: cvFile.type,
-            data: cvContent,
-          },
-        });
-      }
-
-      // Add script to analysis if available
-      if (scriptContent) {
-        messages[0].content.push({
-          type: "document", 
-          source: {
-            type: "base64",
-            media_type: scriptFile.type,
-            data: scriptContent,
-          },
-        });
-      }
-
-      // If no files provided, use mock analysis
-      if (!cvContent && !scriptContent) {
-        return generateMockAnalysis();
-      }
-
-      // Call Claude API
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
-          messages: messages
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      let responseText = data.content[0].text;
-      
-      // Clean up response and parse JSON
-      responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
-      
-      const analysis = JSON.parse(responseText);
-      
-      // Validate analysis structure
-      if (!analysis.genre_match || !analysis.tone_match || !analysis.dialogue_quality || 
-          !analysis.structure_score || !analysis.character_development) {
-        throw new Error('Invalid analysis format received');
-      }
-
-      return analysis;
-
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      // Return enhanced mock analysis as fallback
-      return generateMockAnalysis();
-    }
-  };
-
-  const generateMockAnalysis = () => {
-    const scores = {
-      genre_match: Math.floor(Math.random() * 30) + 70,
-      tone_match: Math.floor(Math.random() * 30) + 65,
-      dialogue_quality: Math.floor(Math.random() * 25) + 70,
-      structure_score: Math.floor(Math.random() * 30) + 60,
-      character_development: Math.floor(Math.random() * 25) + 70,
-      experience_relevance: Math.floor(Math.random() * 35) + 60
-    };
-
-    const overall = Math.floor((scores.genre_match + scores.tone_match + scores.dialogue_quality + 
-                                scores.structure_score + scores.character_development + scores.experience_relevance) / 6);
-
-    return {
-      ...scores,
-      overall_score: overall,
-      detailed_analysis: {
-        cv_highlights: "Demo analysis - upload CV for detailed evaluation",
-        script_strengths: "Demo analysis - upload script for detailed evaluation", 
-        script_weaknesses: "Demo analysis - upload script for detailed evaluation",
-        genre_fit_reasoning: "Demo analysis - upload files for AI evaluation",
-        tone_fit_reasoning: "Demo analysis - upload files for AI evaluation",
-        recommendation: overall >= 80 ? "RECOMMEND" : overall >= 65 ? "CONSIDER" : "PASS"
-      }
-    };
-  };
-
-  // Enhanced submit function
-  const handleSubmit = async () => {
-    if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
-      alert('Please fill in Writer Name and Pitch Summary');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Show analysis progress
-      const progressAlert = document.createElement('div');
-      progressAlert.className = 'fixed top-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50';
-      progressAlert.innerHTML = `
-        <div class="flex items-center">
-          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-          <span>Analyzing script and CV...</span>
-        </div>
-      `;
-      document.body.appendChild(progressAlert);
-
-      // Perform enhanced analysis
-      const analysis = await analyzeScriptAndCV(
-        formData.cv_file,
-        formData.sample_script,
-        selectedProject.requirements,
-        selectedProject.genre,
-        selectedProject.tone
-      );
-
-      // Remove progress indicator
-      document.body.removeChild(progressAlert);
-
-      const submissionData = {
-        id: Date.now(),
-        writerName: formData.writerName,
-        agentName: currentAgent.name,
-        agentCompany: currentAgent.agency,
-        email: currentAgent.email,
-        projectInterest: selectedProject.title,
-        availability: formData.availability,
-        pitch_summary: formData.pitch_summary,
-        cv_file: formData.cv_file,
-        sample_script: formData.sample_script,
-        submission_date: new Date().toISOString().split('T')[0],
-        analysis: {
-          genre_match: analysis.genre_match,
-          tone_match: analysis.tone_match,
-          dialogue_quality: analysis.dialogue_quality,
-          structure_score: analysis.structure_score,
-          character_development: analysis.character_development,
-          experience_relevance: analysis.experience_relevance || 70
-        },
-        detailed_analysis: analysis.detailed_analysis || {},
-        overall_score: analysis.overall_score,
-        projectId: selectedProject.id,
-        recommendation: analysis.detailed_analysis?.recommendation || "CONSIDER"
-      };
-
-      // Submit to Airtable with enhanced data
-      if (airtableConfig.baseId && airtableConfig.apiKey) {
-        await submitToAirtable(submissionData);
-        alert('Successfully submitted with AI analysis! Thank you for your submission.');
-      } else {
-        alert('Submission recorded with AI analysis!');
-      }
-
-      setSubmissions(prev => [...prev, submissionData]);
-      
-      setFormData({
-        writerName: '',
-        availability: '',
-        cv_file: null,
-        sample_script: null,
-        pitch_summary: ''
-      });
-
-      setSelectedProject(null);
-      setActiveTab('dashboard');
-      
-    } catch (error) {
-      alert(`Submission failed: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Enhanced Airtable submission
-  const submitToAirtable = async (submissionData) => {
-    if (!airtableConfig.baseId || !airtableConfig.apiKey) {
-      throw new Error('Airtable configuration missing');
-    }
-
-    const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${airtableConfig.tableId}`;
-    
-    const airtableData = {
-      records: [{
-        fields: {
-          "Writer Name": submissionData.writerName,
-          "Agent Name": submissionData.agentName,
-          "Agency": submissionData.agentCompany,
-          "Email": submissionData.email,
-          "Project": submissionData.projectInterest,
-          "Availability": submissionData.availability || '',
-          "Pitch Summary": submissionData.pitch_summary || '',
-          "Submission Date": submissionData.submission_date,
-          "Overall Score": submissionData.overall_score,
-          "Genre Match": submissionData.analysis.genre_match,
-          "Tone Match": submissionData.analysis.tone_match,
-          "Dialogue Quality": submissionData.analysis.dialogue_quality,
-          "Structure Score": submissionData.analysis.structure_score,
-          "Character Development": submissionData.analysis.character_development,
-          "Experience Relevance": submissionData.analysis.experience_relevance,
-          "Recommendation": submissionData.recommendation,
-          "CV Highlights": submissionData.detailed_analysis.cv_highlights || '',
-          "Script Strengths": submissionData.detailed_analysis.script_strengths || '',
-          "Script Weaknesses": submissionData.detailed_analysis.script_weaknesses || '',
-          "Genre Fit Reasoning": submissionData.detailed_analysis.genre_fit_reasoning || '',
-          "Tone Fit Reasoning": submissionData.detailed_analysis.tone_fit_reasoning || '',
-          "Status": "New",
-          "CV Filename": formData.cv_file ? formData.cv_file.name : '',
-          "Script Filename": formData.sample_script ? formData.sample_script.name : ''
-        }
-      }]
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${airtableConfig.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(airtableData)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Airtable Error: ${error.error?.message || 'Unknown error'}`);
-    }
-
-    return response.json();
-  };
-
-  // Dashboard helper functions
-  const getFilteredAndSortedSubmissions = () => {
-    let filtered = submissions;
-    
-    // Apply filter
-    if (submissionFilter !== 'all') {
-      filtered = submissions.filter(s => s.recommendation === submissionFilter);
-    }
-    
-    // Apply sort
-    return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'overall_score':
-          return b.overall_score - a.overall_score;
-        case 'submission_date':
-          return new Date(b.submission_date) - new Date(a.submission_date);
-        case 'genre_match':
-          return b.analysis.genre_match - a.analysis.genre_match;
-        case 'experience_relevance':
-          return (b.analysis.experience_relevance || 0) - (a.analysis.experience_relevance || 0);
-        default:
-          return b.overall_score - a.overall_score;
-      }
-    });
-  };
-
-  const getRecommendationStyle = (recommendation) => {
-    switch (recommendation) {
-      case 'RECOMMEND':
-        return 'bg-green-100 text-green-800';
-      case 'CONSIDER':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'PASS':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 85) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    if (score >= 55) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const toggleAnalysisDetails = (submissionId) => {
-    setExpandedAnalysis(prev => ({
-      ...prev,
-      [submissionId]: !prev[submissionId]
-    }));
-  };
-
-  const generateDetailedReport = () => {
+const generateDetailedReport = () => {
     const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
     
     let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File,Script File\n";
@@ -1283,44 +581,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                     <input
                       type="text"
                       value={uxSettings.companyName}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Portal Title</label>
-                    <input
-                      type="text"
-                      value={uxSettings.portalTitle}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Login Message</label>
-                    <input
-                      type="text"
-                      value={uxSettings.loginMessage}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Custom Welcome Message</label>
-                    <textarea
-                      value={uxSettings.customWelcomeMessage}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                      rows="3"
-                      placeholder="Optional welcome message for the assignments page..."
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Primary Color</label>
-                    <select
-                      value={uxSettings.primaryColor}
                       onChange={(e) => setUxSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
                       className="w-full p-2 border border-purple-300 rounded"
                     >
@@ -1436,6 +696,13 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                     <h2 className="text-2xl font-bold text-gray-900">All Submissions & AI Analysis</h2>
                     <div className="flex gap-3">
                       <button
+                        onClick={refreshSubmissions}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center"
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Refresh from Airtable
+                      </button>
+                      <button
                         onClick={generateDetailedReport}
                         className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
                       >
@@ -1511,7 +778,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                   {submissions.length === 0 ? (
                     <div className="text-center py-12">
                       <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No submissions yet.</p>
+                      <p className="text-gray-500">No submissions yet. Click "Refresh from Airtable" if you have existing submissions.</p>
                     </div>
                   ) : (
                     <div className="space-y-6">
@@ -1719,4 +986,871 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
   );
 };
 
-export default WriterSubmissionPortal;
+export default WriterSubmissionPortal;xSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Portal Title</label>
+                    <input
+                      type="text"
+                      value={uxSettings.portalTitle}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Login Message</label>
+                    <input
+                      type="text"
+                      value={uxSettings.loginMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Custom Welcome Message</label>
+                    <textarea
+                      value={uxSettings.customWelcomeMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                      rows="3"
+                      placeholder="Optional welcome message for the assignments page..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Primary Color</label>
+                    <select
+                      value={uxSettings.primaryColor}
+                      onChange={(e) => setUimport React, { useState, useEffect } from 'react';
+import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
+
+const WriterSubmissionPortal = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentAgent, setCurrentAgent] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [activeTab, setActiveTab] = useState('assignments');
+  const [submissions, setSubmissions] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [airtableConfig, setAirtableConfig] = useState({
+    baseId: '',
+    tableId: '',
+    apiKey: ''
+  });
+  const [showConfig, setShowConfig] = useState(false);
+  const [showUXConfig, setShowUXConfig] = useState(false);
+  const [showProjectConfig, setShowProjectConfig] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [newProject, setNewProject] = useState({
+    title: '',
+    genre: '',
+    tone: '',
+    budget: '',
+    network: '',
+    description: '',
+    deadline: '',
+    status: 'Active',
+    requirements: []
+  });
+  const [newRequirement, setNewRequirement] = useState('');
+  
+  const [uxSettings, setUxSettings] = useState({
+    companyName: 'Playground Entertainment',
+    portalTitle: 'Writer Submission Portal',
+    loginMessage: 'Access Playground Entertainment\'s open writing assignments',
+    primaryColor: 'indigo',
+    showDeadlines: true,
+    showBudgetInfo: true,
+    showNetworkInfo: true,
+    showRequirements: true,
+    customWelcomeMessage: '',
+    footerText: ''
+  });
+
+  // New state for enhanced dashboard
+  const [submissionFilter, setSubmissionFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('overall_score');
+  const [expandedAnalysis, setExpandedAnalysis] = useState({});
+
+  const agents = [
+    { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
+    { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME' },
+    { id: 3, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
+    { id: 4, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment' }
+  ];
+
+  const [projects, setProjects] = useState([
+    {
+      id: 1,
+      title: "Dark Crime Drama",
+      genre: "Crime Drama",
+      tone: "Dark, Gritty",
+      budget: "Mid-Budget",
+      network: "Premium Cable",
+      description: "Neo-noir crime series set in modern Detroit. Focus on corrupt police and organized crime.",
+      deadline: "2025-09-15",
+      status: "Active",
+      requirements: ["3+ years TV writing experience", "Crime/thriller background preferred", "Available for 6-month commitment"]
+    },
+    {
+      id: 2,
+      title: "Tech Thriller Limited Series",
+      genre: "Thriller/Sci-Fi",
+      tone: "Contemporary, Suspenseful",
+      budget: "High-Budget",
+      network: "Streaming Platform",
+      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley.",
+      deadline: "2025-08-30",
+      status: "Active",
+      requirements: ["Limited series experience", "Tech industry knowledge helpful", "Strong dialogue skills"]
+    }
+  ]);
+
+  const [formData, setFormData] = useState({
+    writerName: '',
+    availability: '',
+    cv_file: null,
+    sample_script: null,
+    pitch_summary: ''
+  });
+
+  const getColorClasses = (color) => {
+    const colorMap = {
+      indigo: {
+        bg: 'bg-indigo-600',
+        bgHover: 'bg-indigo-700',
+        bgDark: 'bg-indigo-800',
+        text: 'text-indigo-600',
+        textLight: 'text-indigo-200',
+        border: 'border-indigo-500',
+        borderHover: 'border-indigo-300'
+      },
+      blue: {
+        bg: 'bg-blue-600',
+        bgHover: 'bg-blue-700',
+        bgDark: 'bg-blue-800',
+        text: 'text-blue-600',
+        textLight: 'text-blue-200',
+        border: 'border-blue-500',
+        borderHover: 'border-blue-300'
+      },
+      purple: {
+        bg: 'bg-purple-600',
+        bgHover: 'bg-purple-700',
+        bgDark: 'bg-purple-800',
+        text: 'text-purple-600',
+        textLight: 'text-purple-200',
+        border: 'border-purple-500',
+        borderHover: 'border-purple-300'
+      },
+      green: {
+        bg: 'bg-green-600',
+        bgHover: 'bg-green-700',
+        bgDark: 'bg-green-800',
+        text: 'text-green-600',
+        textLight: 'text-green-200',
+        border: 'border-green-500',
+        borderHover: 'border-green-300'
+      },
+      red: {
+        bg: 'bg-red-600',
+        bgHover: 'bg-red-700',
+        bgDark: 'bg-red-800',
+        text: 'text-red-600',
+        textLight: 'text-red-200',
+        border: 'border-red-500',
+        borderHover: 'border-red-300'
+      },
+      gray: {
+        bg: 'bg-gray-600',
+        bgHover: 'bg-gray-700',
+        bgDark: 'bg-gray-800',
+        text: 'text-gray-600',
+        textLight: 'text-gray-200',
+        border: 'border-gray-500',
+        borderHover: 'border-gray-300'
+      }
+    };
+    return colorMap[color] || colorMap.indigo;
+  };
+
+  const isAdmin = currentAgent?.email === 'admin@playground.com';
+  const colors = getColorClasses(uxSettings.primaryColor);
+
+  // Load submissions from Airtable
+  const loadSubmissionsFromAirtable = async () => {
+    if (!airtableConfig.baseId || !airtableConfig.apiKey) {
+      return; // No Airtable config, skip loading
+    }
+
+    try {
+      const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${airtableConfig.tableId}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${airtableConfig.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to load submissions from Airtable:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Convert Airtable records to our submission format
+      const airtableSubmissions = data.records.map(record => {
+        const fields = record.fields;
+        return {
+          id: record.id, // Use Airtable record ID
+          writerName: fields["Writer Name"] || '',
+          agentName: fields["Agent Name"] || '',
+          agentCompany: fields["Agency"] || '',
+          email: fields["Email"] || '',
+          projectInterest: fields["Project"] || '',
+          availability: fields["Availability"] || '',
+          pitch_summary: fields["Pitch Summary"] || '',
+          submission_date: fields["Submission Date"] || '',
+          overall_score: fields["Overall Score"] || 0,
+          recommendation: fields["Recommendation"] || 'CONSIDER',
+          analysis: {
+            genre_match: fields["Genre Match"] || 0,
+            tone_match: fields["Tone Match"] || 0,
+            dialogue_quality: fields["Dialogue Quality"] || 0,
+            structure_score: fields["Structure Score"] || 0,
+            character_development: fields["Character Development"] || 0,
+            experience_relevance: fields["Experience Relevance"] || 0
+          },
+          detailed_analysis: {
+            cv_highlights: fields["CV Highlights"] || '',
+            script_strengths: fields["Script Strengths"] || '',
+            script_weaknesses: fields["Script Weaknesses"] || '',
+            genre_fit_reasoning: fields["Genre Fit Reasoning"] || '',
+            tone_fit_reasoning: fields["Tone Fit Reasoning"] || ''
+          },
+          cv_file: fields["CV Filename"] ? { name: fields["CV Filename"] } : null,
+          sample_script: fields["Script Filename"] ? { name: fields["Script Filename"] } : null,
+          projectId: 1 // Default project ID
+        };
+      });
+
+      // Update local state with Airtable submissions
+      setSubmissions(airtableSubmissions);
+      
+      console.log(`Loaded ${airtableSubmissions.length} submissions from Airtable`);
+
+    } catch (error) {
+      console.error('Error loading submissions from Airtable:', error);
+    }
+  };
+
+  // Refresh submissions manually
+  const refreshSubmissions = async () => {
+    if (isAdmin) {
+      await loadSubmissionsFromAirtable();
+      alert('Submissions refreshed from Airtable!');
+    }
+  };
+
+  useEffect(() => {
+    const savedConfig = {
+      baseId: localStorage.getItem('airtableBaseId') || '',
+      tableId: localStorage.getItem('airtableTableId') || 'tblWriterSubmissions',
+      apiKey: localStorage.getItem('airtableApiKey') || ''
+    };
+    setAirtableConfig(savedConfig);
+
+    const savedUxSettings = localStorage.getItem('uxSettings');
+    if (savedUxSettings) {
+      setUxSettings(JSON.parse(savedUxSettings));
+    }
+
+    const savedAgent = localStorage.getItem('currentAgent');
+    if (savedAgent) {
+      const agent = JSON.parse(savedAgent);
+      setCurrentAgent(agent);
+      setIsLoggedIn(true);
+      
+      // If admin logs in and Airtable is configured, load submissions
+      if (agent.email === 'admin@playground.com' && savedConfig.baseId && savedConfig.apiKey) {
+        setTimeout(() => loadSubmissionsFromAirtable(), 500);
+      }
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const agent = agents.find(a => a.email === loginData.email && a.password === loginData.password);
+    
+    if (agent) {
+      setCurrentAgent(agent);
+      setIsLoggedIn(true);
+      localStorage.setItem('currentAgent', JSON.stringify(agent));
+      setLoginData({ email: '', password: '' });
+      
+      // Load submissions from Airtable if admin logs in
+      if (agent.email === 'admin@playground.com' && airtableConfig.baseId && airtableConfig.apiKey) {
+        setTimeout(() => loadSubmissionsFromAirtable(), 500);
+      }
+    } else {
+      alert('Invalid credentials. Try: demo@agent.com / demo or admin@playground.com / admin123');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentAgent(null);
+    setSelectedProject(null);
+    setActiveTab('assignments');
+    localStorage.removeItem('currentAgent');
+    setFormData({
+      writerName: '',
+      availability: '',
+      cv_file: null,
+      sample_script: null,
+      pitch_summary: ''
+    });
+  };
+
+  const selectProject = (project) => {
+    setSelectedProject(project);
+    setActiveTab('submit');
+  };
+
+  const saveAirtableConfig = () => {
+    localStorage.setItem('airtableBaseId', airtableConfig.baseId);
+    localStorage.setItem('airtableTableId', airtableConfig.tableId);
+    localStorage.setItem('airtableApiKey', airtableConfig.apiKey);
+    setShowConfig(false);
+    alert('Airtable configuration saved!');
+  };
+
+  const saveUxSettings = () => {
+    localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
+    setShowUXConfig(false);
+    alert('UX settings saved! Changes will apply immediately.');
+  };
+
+  const addRequirement = () => {
+    if (newRequirement.trim()) {
+      if (editingProject) {
+        setEditingProject(prev => ({
+          ...prev,
+          requirements: [...prev.requirements, newRequirement.trim()]
+        }));
+      } else {
+        setNewProject(prev => ({
+          ...prev,
+          requirements: [...prev.requirements, newRequirement.trim()]
+        }));
+      }
+      setNewRequirement('');
+    }
+  };
+
+  const removeRequirement = (index) => {
+    if (editingProject) {
+      setEditingProject(prev => ({
+        ...prev,
+        requirements: prev.requirements.filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewProject(prev => ({
+        ...prev,
+        requirements: prev.requirements.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const saveProject = () => {
+    if (editingProject) {
+      setProjects(prev => prev.map(p => p.id === editingProject.id ? editingProject : p));
+      setEditingProject(null);
+      alert('Project updated!');
+    } else {
+      const project = {
+        ...newProject,
+        id: Date.now()
+      };
+      setProjects(prev => [...prev, project]);
+      setNewProject({
+        title: '',
+        genre: '',
+        tone: '',
+        budget: '',
+        network: '',
+        description: '',
+        deadline: '',
+        status: 'Active',
+        requirements: []
+      });
+      alert('Project created!');
+    }
+  };
+
+  const editProject = (project) => {
+    setEditingProject({ ...project });
+  };
+
+  const deleteProject = (projectId) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      alert('Project deleted!');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingProject(null);
+    setNewProject({
+      title: '',
+      genre: '',
+      tone: '',
+      budget: '',
+      network: '',
+      description: '',
+      deadline: '',
+      status: 'Active',
+      requirements: []
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleFileUpload = (e, fileType) => {
+    const file = e.target.files[0];
+    setFormData(prev => ({
+      ...prev,
+      [fileType]: file
+    }));
+  };
+
+  // Enhanced AI Analysis Functions
+  const analyzeScriptAndCV = async (cvFile, scriptFile, projectRequirements, projectGenre, projectTone) => {
+    try {
+      // Read files as base64
+      const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+      };
+
+      let cvContent = null;
+      let scriptContent = null;
+
+      // Read CV if provided
+      if (cvFile) {
+        try {
+          cvContent = await readFileAsBase64(cvFile);
+        } catch (error) {
+          console.warn('Could not read CV file:', error);
+        }
+      }
+
+      // Read script if provided
+      if (scriptFile) {
+        try {
+          scriptContent = await readFileAsBase64(scriptFile);
+        } catch (error) {
+          console.warn('Could not read script file:', error);
+        }
+      }
+
+      // Prepare messages for Claude API
+      const messages = [];
+      
+      // Add system prompt with analysis criteria
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `You are an expert television script analyst and development executive. Analyze the provided CV and script sample for a ${projectGenre} project with a ${projectTone} tone.
+
+PROJECT REQUIREMENTS:
+${projectRequirements.map(req => `- ${req}`).join('\n')}
+
+PROJECT DETAILS:
+- Genre: ${projectGenre}
+- Tone: ${projectTone}
+
+ANALYSIS CRITERIA:
+1. GENRE MATCH (0-100): How well does the writer's experience and script sample match the ${projectGenre} genre?
+2. TONE MATCH (0-100): How well does the writing style match the ${projectTone} tone?
+3. DIALOGUE QUALITY (0-100): Quality of dialogue - natural, character-specific, engaging
+4. STRUCTURE SCORE (0-100): Story structure, pacing, scene transitions, professional formatting
+5. CHARACTER DEVELOPMENT (0-100): Character depth, motivation, distinctive voices
+6. EXPERIENCE RELEVANCE (0-100): How relevant is their past TV/film experience to this project?
+
+PROVIDE YOUR RESPONSE AS A VALID JSON OBJECT IN THIS EXACT FORMAT:
+{
+  "genre_match": 85,
+  "tone_match": 78,
+  "dialogue_quality": 92,
+  "structure_score": 88,
+  "character_development": 80,
+  "experience_relevance": 75,
+  "overall_score": 83,
+  "detailed_analysis": {
+    "cv_highlights": "Brief summary of most relevant experience",
+    "script_strengths": "Key strengths in the script sample",
+    "script_weaknesses": "Areas for improvement",
+    "genre_fit_reasoning": "Why this writer fits/doesn't fit the genre",
+    "tone_fit_reasoning": "How well they match the required tone",
+    "recommendation": "RECOMMEND/CONSIDER/PASS with brief reasoning"
+  }
+}
+
+DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
+          }
+        ]
+      });
+
+      // Add CV to analysis if available
+      if (cvContent) {
+        messages[0].content.push({
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: cvFile.type,
+            data: cvContent,
+          },
+        });
+      }
+
+      // Add script to analysis if available
+      if (scriptContent) {
+        messages[0].content.push({
+          type: "document", 
+          source: {
+            type: "base64",
+            media_type: scriptFile.type,
+            data: scriptContent,
+          },
+        });
+      }
+
+      // If no files provided, use mock analysis
+      if (!cvContent && !scriptContent) {
+        return generateMockAnalysis();
+      }
+
+      // Call Claude API
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: messages
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      let responseText = data.content[0].text;
+      
+      // Clean up response and parse JSON
+      responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
+      
+      const analysis = JSON.parse(responseText);
+      
+      // Validate analysis structure
+      if (!analysis.genre_match || !analysis.tone_match || !analysis.dialogue_quality || 
+          !analysis.structure_score || !analysis.character_development) {
+        throw new Error('Invalid analysis format received');
+      }
+
+      return analysis;
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Return enhanced mock analysis as fallback
+      return generateMockAnalysis();
+    }
+  };
+
+  const generateMockAnalysis = () => {
+    const scores = {
+      genre_match: Math.floor(Math.random() * 30) + 70,
+      tone_match: Math.floor(Math.random() * 30) + 65,
+      dialogue_quality: Math.floor(Math.random() * 25) + 70,
+      structure_score: Math.floor(Math.random() * 30) + 60,
+      character_development: Math.floor(Math.random() * 25) + 70,
+      experience_relevance: Math.floor(Math.random() * 35) + 60
+    };
+
+    const overall = Math.floor((scores.genre_match + scores.tone_match + scores.dialogue_quality + 
+                                scores.structure_score + scores.character_development + scores.experience_relevance) / 6);
+
+    return {
+      ...scores,
+      overall_score: overall,
+      detailed_analysis: {
+        cv_highlights: "Demo analysis - upload CV for detailed evaluation",
+        script_strengths: "Demo analysis - upload script for detailed evaluation", 
+        script_weaknesses: "Demo analysis - upload script for detailed evaluation",
+        genre_fit_reasoning: "Demo analysis - upload files for AI evaluation",
+        tone_fit_reasoning: "Demo analysis - upload files for AI evaluation",
+        recommendation: overall >= 80 ? "RECOMMEND" : overall >= 65 ? "CONSIDER" : "PASS"
+      }
+    };
+  };
+
+  // Enhanced submit function
+  const handleSubmit = async () => {
+    if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
+      alert('Please fill in Writer Name and Pitch Summary');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Show analysis progress
+      const progressAlert = document.createElement('div');
+      progressAlert.className = 'fixed top-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50';
+      progressAlert.innerHTML = `
+        <div class="flex items-center">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+          <span>Analyzing script and CV...</span>
+        </div>
+      `;
+      document.body.appendChild(progressAlert);
+
+      // Perform enhanced analysis
+      const analysis = await analyzeScriptAndCV(
+        formData.cv_file,
+        formData.sample_script,
+        selectedProject.requirements,
+        selectedProject.genre,
+        selectedProject.tone
+      );
+
+      // Remove progress indicator
+      document.body.removeChild(progressAlert);
+
+      const submissionData = {
+        id: Date.now(),
+        writerName: formData.writerName,
+        agentName: currentAgent.name,
+        agentCompany: currentAgent.agency,
+        email: currentAgent.email,
+        projectInterest: selectedProject.title,
+        availability: formData.availability,
+        pitch_summary: formData.pitch_summary,
+        cv_file: formData.cv_file,
+        sample_script: formData.sample_script,
+        submission_date: new Date().toISOString().split('T')[0],
+        analysis: {
+          genre_match: analysis.genre_match,
+          tone_match: analysis.tone_match,
+          dialogue_quality: analysis.dialogue_quality,
+          structure_score: analysis.structure_score,
+          character_development: analysis.character_development,
+          experience_relevance: analysis.experience_relevance || 70
+        },
+        detailed_analysis: analysis.detailed_analysis || {},
+        overall_score: analysis.overall_score,
+        projectId: selectedProject.id,
+        recommendation: analysis.detailed_analysis?.recommendation || "CONSIDER"
+      };
+
+      // Submit to Airtable with enhanced data
+      if (airtableConfig.baseId && airtableConfig.apiKey) {
+        await submitToAirtable(submissionData);
+        alert('Successfully submitted with AI analysis! Thank you for your submission.');
+      } else {
+        alert('Submission recorded with AI analysis!');
+      }
+
+      setSubmissions(prev => [...prev, submissionData]);
+      
+      setFormData({
+        writerName: '',
+        availability: '',
+        cv_file: null,
+        sample_script: null,
+        pitch_summary: ''
+      });
+
+      setSelectedProject(null);
+      setActiveTab('dashboard');
+      
+    } catch (error) {
+      alert(`Submission failed: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Enhanced Airtable submission
+  const submitToAirtable = async (submissionData) => {
+    if (!airtableConfig.baseId || !airtableConfig.apiKey) {
+      throw new Error('Airtable configuration missing');
+    }
+
+    const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${airtableConfig.tableId}`;
+    
+    // Build fields object, only including fields that have values
+    const fields = {
+      "Writer Name": submissionData.writerName,
+      "Agent Name": submissionData.agentName,
+      "Agency": submissionData.agentCompany,
+      "Email": submissionData.email,
+      "Project": submissionData.projectInterest,
+      "Submission Date": submissionData.submission_date,
+      "Overall Score": submissionData.overall_score,
+      "Genre Match": submissionData.analysis.genre_match,
+      "Tone Match": submissionData.analysis.tone_match,
+      "Dialogue Quality": submissionData.analysis.dialogue_quality,
+      "Structure Score": submissionData.analysis.structure_score,
+      "Character Development": submissionData.analysis.character_development,
+      "Status": "New"
+    };
+
+    // Only add optional fields if they have values
+    if (submissionData.availability) {
+      fields["Availability"] = submissionData.availability;
+    }
+    
+    if (submissionData.pitch_summary) {
+      fields["Pitch Summary"] = submissionData.pitch_summary;
+    }
+
+    if (submissionData.analysis.experience_relevance) {
+      fields["Experience Relevance"] = submissionData.analysis.experience_relevance;
+    }
+
+    // Only add recommendation if the field exists and has a valid value
+    if (submissionData.recommendation && ['RECOMMEND', 'CONSIDER', 'PASS'].includes(submissionData.recommendation)) {
+      fields["Recommendation"] = submissionData.recommendation;
+    }
+
+    // Only add detailed analysis fields if they exist
+    if (submissionData.detailed_analysis) {
+      if (submissionData.detailed_analysis.cv_highlights) {
+        fields["CV Highlights"] = submissionData.detailed_analysis.cv_highlights;
+      }
+      if (submissionData.detailed_analysis.script_strengths) {
+        fields["Script Strengths"] = submissionData.detailed_analysis.script_strengths;
+      }
+      if (submissionData.detailed_analysis.script_weaknesses) {
+        fields["Script Weaknesses"] = submissionData.detailed_analysis.script_weaknesses;
+      }
+      if (submissionData.detailed_analysis.genre_fit_reasoning) {
+        fields["Genre Fit Reasoning"] = submissionData.detailed_analysis.genre_fit_reasoning;
+      }
+      if (submissionData.detailed_analysis.tone_fit_reasoning) {
+        fields["Tone Fit Reasoning"] = submissionData.detailed_analysis.tone_fit_reasoning;
+      }
+    }
+
+    // Add file info if files were uploaded
+    if (formData.cv_file) {
+      fields["CV Filename"] = formData.cv_file.name;
+    }
+    if (formData.sample_script) {
+      fields["Script Filename"] = formData.sample_script.name;
+    }
+
+    const airtableData = {
+      records: [{
+        fields: fields
+      }]
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${airtableConfig.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(airtableData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Airtable Error: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    return response.json();
+  };
+
+  // Dashboard helper functions
+  const getFilteredAndSortedSubmissions = () => {
+    let filtered = submissions;
+    
+    // Apply filter
+    if (submissionFilter !== 'all') {
+      filtered = submissions.filter(s => s.recommendation === submissionFilter);
+    }
+    
+    // Apply sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'overall_score':
+          return b.overall_score - a.overall_score;
+        case 'submission_date':
+          return new Date(b.submission_date) - new Date(a.submission_date);
+        case 'genre_match':
+          return b.analysis.genre_match - a.analysis.genre_match;
+        case 'experience_relevance':
+          return (b.analysis.experience_relevance || 0) - (a.analysis.experience_relevance || 0);
+        default:
+          return b.overall_score - a.overall_score;
+      }
+    });
+  };
+
+  const getRecommendationStyle = (recommendation) => {
+    switch (recommendation) {
+      case 'RECOMMEND':
+        return 'bg-green-100 text-green-800';
+      case 'CONSIDER':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'PASS':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 85) return 'text-green-600';
+    if (score >= 70) return 'text-yellow-600';
+    if (score >= 55) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const toggleAnalysisDetails = (submissionId) => {
+    setExpandedAnalysis(prev => ({
+      ...prev,
+      [submissionId]: !prev[submissionId]
+    }));
+  };
+
+  const generateDetailedReport = () => {
+    const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
+    
+    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File
