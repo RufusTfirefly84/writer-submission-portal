@@ -1,14 +1,4 @@
-const generateDetailedReport = () => {
-    const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
-    
-    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File,Script File\n";
-    
-    sortedSubmissions.forEach(sub => {
-      const analysis = sub.detailed_analysis || {};
-      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability || ''}",${sub.overall_score},"${sub.recommendation || 'CONSIDER'}",${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},${sub.analysis.experience_relevance || ''},"${(analysis.cv_highlights || '').replace(/"/g, '""')}","${(analysis.script_strengths || '').replace(/"/g, '""')}","${(analysis.script_weaknesses || '').replace(/"/g, '""')}","${(analysis.genre_fit_reasoning || '').replace(/"/g, '""')}","${(analysis.tone_fit_reasoning || '').replace(/"/g, '""')}","${sub.submission_date}","${sub.cv_file ? sub.cv_file.name : ''}","${sub.sample_script ? sub.sample_script.name : ''}"\n`;
-    });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -95,7 +85,7 @@ const generateDetailedReport = () => {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="font-medium">{currentAgent?.name}</p>
-                <p className={colors.textLight + " text-sm"}>{currentAgent?.agency}</p>
+                <p className={`${colors.textLight} text-sm`}>{currentAgent?.agency}</p>
               </div>
               <button
                 onClick={handleLogout}
@@ -259,7 +249,7 @@ const generateDetailedReport = () => {
 
           {activeTab === 'submit' && selectedProject && (
             <div>
-              <div className={`mb-6 p-4 ${colors.textLight.replace('text-', 'bg-').replace('-200', '-50')} rounded-lg border border-indigo-200`}>
+              <div className="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                 <h2 className="text-xl font-bold text-indigo-900 mb-2">Submitting for: {selectedProject.title}</h2>
                 <p className="text-indigo-700">{selectedProject.genre} • {selectedProject.network}</p>
               </div>
@@ -362,7 +352,6 @@ const generateDetailedReport = () => {
             </div>
           )}
 
-          {/* Admin Configuration Panels */}
           {showProjectConfig && isAdmin && (
             <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
               <h3 className="text-lg font-semibold text-orange-900 mb-4">Project Manager</h3>
@@ -573,7 +562,7 @@ const generateDetailedReport = () => {
 
           {showUXConfig && isAdmin && (
             <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <h3 className="text-lg font-semibold text-purple-900 mb-4">Agent UX Designer</h3>
+              <h3 className="text-lg font-semibold text-purple-900 mb-4">UX Designer</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -581,10 +570,48 @@ const generateDetailedReport = () => {
                     <input
                       type="text"
                       value={uxSettings.companyName}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Portal Title</label>
+                    <input
+                      type="text"
+                      value={uxSettings.portalTitle}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Login Message</label>
+                    <input
+                      type="text"
+                      value={uxSettings.loginMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Welcome Message</label>
+                    <textarea
+                      value={uxSettings.customWelcomeMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                      rows="3"
+                      placeholder="Optional welcome message..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Primary Color</label>
+                    <select
+                      value={uxSettings.primaryColor}
                       onChange={(e) => setUxSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
                       className="w-full p-2 border border-purple-300 rounded"
                     >
-                      <option value="indigo">Indigo (Default)</option>
+                      <option value="indigo">Indigo</option>
                       <option value="blue">Blue</option>
                       <option value="purple">Purple</option>
                       <option value="green">Green</option>
@@ -595,33 +622,6 @@ const generateDetailedReport = () => {
                   <div>
                     <label className="block text-sm font-medium text-purple-700 mb-2">Display Options</label>
                     <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={uxSettings.showDeadlines}
-                          onChange={(e) => setUxSettings(prev => ({ ...prev, showDeadlines: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Show Deadlines
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={uxSettings.showBudgetInfo}
-                          onChange={(e) => setUxSettings(prev => ({ ...prev, showBudgetInfo: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Show Budget Information
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={uxSettings.showNetworkInfo}
-                          onChange={(e) => setUxSettings(prev => ({ ...prev, showNetworkInfo: e.target.checked }))}
-                          className="mr-2"
-                        />
-                        Show Network Information
-                      </label>
                       <label className="flex items-center">
                         <input
                           type="checkbox"
@@ -639,7 +639,7 @@ const generateDetailedReport = () => {
                 onClick={saveUxSettings}
                 className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mt-4"
               >
-                Save UX Settings
+                Save Settings
               </button>
             </div>
           )}
@@ -719,7 +719,6 @@ const generateDetailedReport = () => {
                     </div>
                   </div>
 
-                  {/* Enhanced Analytics Dashboard */}
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
@@ -751,7 +750,6 @@ const generateDetailedReport = () => {
                     </div>
                   </div>
 
-                  {/* Filter and Sort Controls */}
                   <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                     <select 
                       value={submissionFilter}
@@ -782,153 +780,146 @@ const generateDetailedReport = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {getFilteredAndSortedSubmissions()
-                        .map(submission => (
-                          <div key={submission.id} className="bg-white border rounded-lg shadow-sm overflow-hidden">
-                            {/* Header Section */}
-                            <div className="p-6 border-b border-gray-200">
-                              <div className="flex justify-between items-start mb-4">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationStyle(submission.recommendation)}`}>
-                                      {submission.recommendation}
-                                    </span>
-                                  </div>
-                                  <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
-                                  <div className="flex gap-6 text-sm text-gray-500 mt-1">
-                                    <span>Project: {submission.projectInterest}</span>
-                                    <span>Date: {submission.submission_date}</span>
-                                    {submission.availability && <span>Available: {submission.availability}</span>}
-                                  </div>
+                      {getFilteredAndSortedSubmissions().map(submission => (
+                        <div key={submission.id} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+                          <div className="p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
+                                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationStyle(submission.recommendation)}`}>
+                                    {submission.recommendation}
+                                  </span>
                                 </div>
-                                <div className="text-right">
-                                  <div className={`text-4xl font-bold ${getScoreColor(submission.overall_score)}`}>
-                                    {submission.overall_score}%
-                                  </div>
-                                  <p className="text-sm text-gray-500">Overall Match</p>
+                                <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
+                                <div className="flex gap-6 text-sm text-gray-500 mt-1">
+                                  <span>Project: {submission.projectInterest}</span>
+                                  <span>Date: {submission.submission_date}</span>
+                                  {submission.availability && <span>Available: {submission.availability}</span>}
                                 </div>
                               </div>
-
-                              {/* Score Breakdown */}
-                              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
-                                  <p className="text-xs text-gray-500">Genre Match</p>
+                              <div className="text-right">
+                                <div className={`text-4xl font-bold ${getScoreColor(submission.overall_score)}`}>
+                                  {submission.overall_score}%
                                 </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
-                                  <p className="text-xs text-gray-500">Tone Match</p>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
-                                  <p className="text-xs text-gray-500">Dialogue</p>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
-                                  <p className="text-xs text-gray-500">Structure</p>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
-                                  <p className="text-xs text-gray-500">Character Dev</p>
-                                </div>
-                                <div className="text-center">
-                                  <div className="text-lg font-semibold text-indigo-600">{submission.analysis.experience_relevance || 'N/A'}</div>
-                                  <p className="text-xs text-gray-500">Experience</p>
-                                </div>
+                                <p className="text-sm text-gray-500">Overall Match</p>
                               </div>
                             </div>
 
-                            {/* Detailed Analysis Section */}
-                            {submission.detailed_analysis && (
-                              <div className="p-6 bg-gray-50">
-                                <button
-                                  onClick={() => toggleAnalysisDetails(submission.id)}
-                                  className="flex items-center justify-between w-full text-left"
-                                >
-                                  <h4 className="text-lg font-semibold text-gray-800">Detailed AI Analysis</h4>
-                                  <span className="text-gray-500">
-                                    {expandedAnalysis[submission.id] ? '▼' : '▶'}
-                                  </span>
-                                </button>
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
+                                <p className="text-xs text-gray-500">Genre Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
+                                <p className="text-xs text-gray-500">Tone Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
+                                <p className="text-xs text-gray-500">Dialogue</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
+                                <p className="text-xs text-gray-500">Structure</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
+                                <p className="text-xs text-gray-500">Character Dev</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-indigo-600">{submission.analysis.experience_relevance || 'N/A'}</div>
+                                <p className="text-xs text-gray-500">Experience</p>
+                              </div>
+                            </div>
+                          </div>
 
-                                {expandedAnalysis[submission.id] && (
-                                  <div className="mt-4 space-y-4">
-                                    {submission.detailed_analysis.cv_highlights && (
-                                      <div className="bg-white p-4 rounded-lg">
-                                        <h5 className="font-semibold text-blue-800 mb-2">CV Highlights</h5>
-                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.cv_highlights}</p>
-                                      </div>
-                                    )}
+                          {submission.detailed_analysis && (
+                            <div className="p-6 bg-gray-50">
+                              <button
+                                onClick={() => toggleAnalysisDetails(submission.id)}
+                                className="flex items-center justify-between w-full text-left"
+                              >
+                                <h4 className="text-lg font-semibold text-gray-800">Detailed AI Analysis</h4>
+                                <span className="text-gray-500">
+                                  {expandedAnalysis[submission.id] ? '▼' : '▶'}
+                                </span>
+                              </button>
 
-                                    {submission.detailed_analysis.script_strengths && (
-                                      <div className="bg-white p-4 rounded-lg">
-                                        <h5 className="font-semibold text-green-800 mb-2">Script Strengths</h5>
-                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.script_strengths}</p>
-                                      </div>
-                                    )}
-
-                                    {submission.detailed_analysis.script_weaknesses && (
-                                      <div className="bg-white p-4 rounded-lg">
-                                        <h5 className="font-semibold text-orange-800 mb-2">Areas for Improvement</h5>
-                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.script_weaknesses}</p>
-                                      </div>
-                                    )}
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {submission.detailed_analysis.genre_fit_reasoning && (
-                                        <div className="bg-white p-4 rounded-lg">
-                                          <h5 className="font-semibold text-purple-800 mb-2">Genre Fit Analysis</h5>
-                                          <p className="text-sm text-gray-700">{submission.detailed_analysis.genre_fit_reasoning}</p>
-                                        </div>
-                                      )}
-
-                                      {submission.detailed_analysis.tone_fit_reasoning && (
-                                        <div className="bg-white p-4 rounded-lg">
-                                          <h5 className="font-semibold text-indigo-800 mb-2">Tone Match Analysis</h5>
-                                          <p className="text-sm text-gray-700">{submission.detailed_analysis.tone_fit_reasoning}</p>
-                                        </div>
-                                      )}
+                              {expandedAnalysis[submission.id] && (
+                                <div className="mt-4 space-y-4">
+                                  {submission.detailed_analysis.cv_highlights && (
+                                    <div className="bg-white p-4 rounded-lg">
+                                      <h5 className="font-semibold text-blue-800 mb-2">CV Highlights</h5>
+                                      <p className="text-sm text-gray-700">{submission.detailed_analysis.cv_highlights}</p>
                                     </div>
+                                  )}
+
+                                  {submission.detailed_analysis.script_strengths && (
+                                    <div className="bg-white p-4 rounded-lg">
+                                      <h5 className="font-semibold text-green-800 mb-2">Script Strengths</h5>
+                                      <p className="text-sm text-gray-700">{submission.detailed_analysis.script_strengths}</p>
+                                    </div>
+                                  )}
+
+                                  {submission.detailed_analysis.script_weaknesses && (
+                                    <div className="bg-white p-4 rounded-lg">
+                                      <h5 className="font-semibold text-orange-800 mb-2">Areas for Improvement</h5>
+                                      <p className="text-sm text-gray-700">{submission.detailed_analysis.script_weaknesses}</p>
+                                    </div>
+                                  )}
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {submission.detailed_analysis.genre_fit_reasoning && (
+                                      <div className="bg-white p-4 rounded-lg">
+                                        <h5 className="font-semibold text-purple-800 mb-2">Genre Fit Analysis</h5>
+                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.genre_fit_reasoning}</p>
+                                      </div>
+                                    )}
+
+                                    {submission.detailed_analysis.tone_fit_reasoning && (
+                                      <div className="bg-white p-4 rounded-lg">
+                                        <h5 className="font-semibold text-indigo-800 mb-2">Tone Match Analysis</h5>
+                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.tone_fit_reasoning}</p>
+                                      </div>
+                                    )}
                                   </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {submission.pitch_summary && (
+                            <div className="p-6 border-t border-gray-200">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Agent Pitch:</h4>
+                              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{submission.pitch_summary}</p>
+                            </div>
+                          )}
+
+                          {(submission.cv_file || submission.sample_script) && (
+                            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                              <div className="flex gap-4 text-sm text-gray-600">
+                                {submission.cv_file && (
+                                  <span className="flex items-center">
+                                    <FileText className="w-4 h-4 mr-1" />
+                                    CV: {submission.cv_file.name}
+                                  </span>
+                                )}
+                                {submission.sample_script && (
+                                  <span className="flex items-center">
+                                    <FileText className="w-4 h-4 mr-1" />
+                                    Script: {submission.sample_script.name}
+                                  </span>
                                 )}
                               </div>
-                            )}
-
-                            {/* Agent Pitch */}
-                            {submission.pitch_summary && (
-                              <div className="p-6 border-t border-gray-200">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">Agent Pitch:</h4>
-                                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{submission.pitch_summary}</p>
-                              </div>
-                            )}
-
-                            {/* Files Section */}
-                            {(submission.cv_file || submission.sample_script) && (
-                              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                                <div className="flex gap-4 text-sm text-gray-600">
-                                  {submission.cv_file && (
-                                    <span className="flex items-center">
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      CV: {submission.cv_file.name}
-                                    </span>
-                                  )}
-                                  {submission.sample_script && (
-                                    <span className="flex items-center">
-                                      <FileText className="w-4 h-4 mr-1" />
-                                      Script: {submission.sample_script.name}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               ) : (
-                // Agent view with enhanced submission display
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
                   {submissions.filter(s => s.email === currentAgent?.email).length === 0 ? (
@@ -986,45 +977,34 @@ const generateDetailedReport = () => {
   );
 };
 
-export default WriterSubmissionPortal;xSettings(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Portal Title</label>
-                    <input
-                      type="text"
-                      value={uxSettings.portalTitle}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Login Message</label>
-                    <input
-                      type="text"
-                      value={uxSettings.loginMessage}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Custom Welcome Message</label>
-                    <textarea
-                      value={uxSettings.customWelcomeMessage}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
-                      className="w-full p-2 border border-purple-300 rounded"
-                      rows="3"
-                      placeholder="Optional welcome message for the assignments page..."
-                    />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-purple-700 mb-2">Primary Color</label>
-                    <select
-                      value={uxSettings.primaryColor}
-                      onChange={(e) => setUimport React, { useState, useEffect } from 'react';
+export default WriterSubmissionPortal;">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showDeadlines}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showDeadlines: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        Show Deadlines
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showBudgetInfo}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showBudgetInfo: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        Show Budget Info
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showNetworkInfo}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showNetworkInfo: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        Show Network Info
+                      </label>
+                      <label className="flex items-centerimport React, { useState, useEffect } from 'react';
 import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
 
 const WriterSubmissionPortal = () => {
@@ -1056,7 +1036,6 @@ const WriterSubmissionPortal = () => {
     requirements: []
   });
   const [newRequirement, setNewRequirement] = useState('');
-  
   const [uxSettings, setUxSettings] = useState({
     companyName: 'Playground Entertainment',
     portalTitle: 'Writer Submission Portal',
@@ -1069,8 +1048,6 @@ const WriterSubmissionPortal = () => {
     customWelcomeMessage: '',
     footerText: ''
   });
-
-  // New state for enhanced dashboard
   const [submissionFilter, setSubmissionFilter] = useState('all');
   const [sortBy, setSortBy] = useState('overall_score');
   const [expandedAnalysis, setExpandedAnalysis] = useState({});
@@ -1180,10 +1157,9 @@ const WriterSubmissionPortal = () => {
   const isAdmin = currentAgent?.email === 'admin@playground.com';
   const colors = getColorClasses(uxSettings.primaryColor);
 
-  // Load submissions from Airtable
   const loadSubmissionsFromAirtable = async () => {
     if (!airtableConfig.baseId || !airtableConfig.apiKey) {
-      return; // No Airtable config, skip loading
+      return;
     }
 
     try {
@@ -1202,11 +1178,10 @@ const WriterSubmissionPortal = () => {
 
       const data = await response.json();
       
-      // Convert Airtable records to our submission format
       const airtableSubmissions = data.records.map(record => {
         const fields = record.fields;
         return {
-          id: record.id, // Use Airtable record ID
+          id: record.id,
           writerName: fields["Writer Name"] || '',
           agentName: fields["Agent Name"] || '',
           agentCompany: fields["Agency"] || '',
@@ -1234,13 +1209,11 @@ const WriterSubmissionPortal = () => {
           },
           cv_file: fields["CV Filename"] ? { name: fields["CV Filename"] } : null,
           sample_script: fields["Script Filename"] ? { name: fields["Script Filename"] } : null,
-          projectId: 1 // Default project ID
+          projectId: 1
         };
       });
 
-      // Update local state with Airtable submissions
       setSubmissions(airtableSubmissions);
-      
       console.log(`Loaded ${airtableSubmissions.length} submissions from Airtable`);
 
     } catch (error) {
@@ -1248,7 +1221,6 @@ const WriterSubmissionPortal = () => {
     }
   };
 
-  // Refresh submissions manually
   const refreshSubmissions = async () => {
     if (isAdmin) {
       await loadSubmissionsFromAirtable();
@@ -1275,7 +1247,6 @@ const WriterSubmissionPortal = () => {
       setCurrentAgent(agent);
       setIsLoggedIn(true);
       
-      // If admin logs in and Airtable is configured, load submissions
       if (agent.email === 'admin@playground.com' && savedConfig.baseId && savedConfig.apiKey) {
         setTimeout(() => loadSubmissionsFromAirtable(), 500);
       }
@@ -1292,7 +1263,6 @@ const WriterSubmissionPortal = () => {
       localStorage.setItem('currentAgent', JSON.stringify(agent));
       setLoginData({ email: '', password: '' });
       
-      // Load submissions from Airtable if admin logs in
       if (agent.email === 'admin@playground.com' && airtableConfig.baseId && airtableConfig.apiKey) {
         setTimeout(() => loadSubmissionsFromAirtable(), 500);
       }
@@ -1434,10 +1404,8 @@ const WriterSubmissionPortal = () => {
     }));
   };
 
-  // Enhanced AI Analysis Functions
   const analyzeScriptAndCV = async (cvFile, scriptFile, projectRequirements, projectGenre, projectTone) => {
     try {
-      // Read files as base64
       const readFileAsBase64 = (file) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -1453,7 +1421,6 @@ const WriterSubmissionPortal = () => {
       let cvContent = null;
       let scriptContent = null;
 
-      // Read CV if provided
       if (cvFile) {
         try {
           cvContent = await readFileAsBase64(cvFile);
@@ -1462,7 +1429,6 @@ const WriterSubmissionPortal = () => {
         }
       }
 
-      // Read script if provided
       if (scriptFile) {
         try {
           scriptContent = await readFileAsBase64(scriptFile);
@@ -1471,10 +1437,8 @@ const WriterSubmissionPortal = () => {
         }
       }
 
-      // Prepare messages for Claude API
       const messages = [];
       
-      // Add system prompt with analysis criteria
       messages.push({
         role: "user",
         content: [
@@ -1521,7 +1485,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         ]
       });
 
-      // Add CV to analysis if available
       if (cvContent) {
         messages[0].content.push({
           type: "document",
@@ -1533,7 +1496,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         });
       }
 
-      // Add script to analysis if available
       if (scriptContent) {
         messages[0].content.push({
           type: "document", 
@@ -1545,12 +1507,10 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         });
       }
 
-      // If no files provided, use mock analysis
       if (!cvContent && !scriptContent) {
         return generateMockAnalysis();
       }
 
-      // Call Claude API
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -1570,12 +1530,10 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
       const data = await response.json();
       let responseText = data.content[0].text;
       
-      // Clean up response and parse JSON
       responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
       
       const analysis = JSON.parse(responseText);
       
-      // Validate analysis structure
       if (!analysis.genre_match || !analysis.tone_match || !analysis.dialogue_quality || 
           !analysis.structure_score || !analysis.character_development) {
         throw new Error('Invalid analysis format received');
@@ -1585,7 +1543,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
 
     } catch (error) {
       console.error('Analysis failed:', error);
-      // Return enhanced mock analysis as fallback
       return generateMockAnalysis();
     }
   };
@@ -1617,7 +1574,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     };
   };
 
-  // Enhanced submit function
   const handleSubmit = async () => {
     if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
       alert('Please fill in Writer Name and Pitch Summary');
@@ -1627,7 +1583,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     setIsSubmitting(true);
 
     try {
-      // Show analysis progress
       const progressAlert = document.createElement('div');
       progressAlert.className = 'fixed top-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50';
       progressAlert.innerHTML = `
@@ -1638,7 +1593,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
       `;
       document.body.appendChild(progressAlert);
 
-      // Perform enhanced analysis
       const analysis = await analyzeScriptAndCV(
         formData.cv_file,
         formData.sample_script,
@@ -1647,7 +1601,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         selectedProject.tone
       );
 
-      // Remove progress indicator
       document.body.removeChild(progressAlert);
 
       const submissionData = {
@@ -1676,7 +1629,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         recommendation: analysis.detailed_analysis?.recommendation || "CONSIDER"
       };
 
-      // Submit to Airtable with enhanced data
       if (airtableConfig.baseId && airtableConfig.apiKey) {
         await submitToAirtable(submissionData);
         alert('Successfully submitted with AI analysis! Thank you for your submission.');
@@ -1704,7 +1656,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     }
   };
 
-  // Enhanced Airtable submission
   const submitToAirtable = async (submissionData) => {
     if (!airtableConfig.baseId || !airtableConfig.apiKey) {
       throw new Error('Airtable configuration missing');
@@ -1712,7 +1663,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
 
     const url = `https://api.airtable.com/v0/${airtableConfig.baseId}/${airtableConfig.tableId}`;
     
-    // Build fields object, only including fields that have values
     const fields = {
       "Writer Name": submissionData.writerName,
       "Agent Name": submissionData.agentName,
@@ -1729,7 +1679,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
       "Status": "New"
     };
 
-    // Only add optional fields if they have values
     if (submissionData.availability) {
       fields["Availability"] = submissionData.availability;
     }
@@ -1742,12 +1691,10 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
       fields["Experience Relevance"] = submissionData.analysis.experience_relevance;
     }
 
-    // Only add recommendation if the field exists and has a valid value
     if (submissionData.recommendation && ['RECOMMEND', 'CONSIDER', 'PASS'].includes(submissionData.recommendation)) {
       fields["Recommendation"] = submissionData.recommendation;
     }
 
-    // Only add detailed analysis fields if they exist
     if (submissionData.detailed_analysis) {
       if (submissionData.detailed_analysis.cv_highlights) {
         fields["CV Highlights"] = submissionData.detailed_analysis.cv_highlights;
@@ -1766,7 +1713,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
       }
     }
 
-    // Add file info if files were uploaded
     if (formData.cv_file) {
       fields["CV Filename"] = formData.cv_file.name;
     }
@@ -1797,16 +1743,13 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     return response.json();
   };
 
-  // Dashboard helper functions
   const getFilteredAndSortedSubmissions = () => {
     let filtered = submissions;
     
-    // Apply filter
     if (submissionFilter !== 'all') {
       filtered = submissions.filter(s => s.recommendation === submissionFilter);
     }
     
-    // Apply sort
     return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'overall_score':
@@ -1853,4 +1796,11 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
   const generateDetailedReport = () => {
     const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
     
-    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File
+    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File,Script File\n";
+    
+    sortedSubmissions.forEach(sub => {
+      const analysis = sub.detailed_analysis || {};
+      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability || ''}",${sub.overall_score},"${sub.recommendation || 'CONSIDER'}",${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},${sub.analysis.experience_relevance || ''},"${(analysis.cv_highlights || '').replace(/"/g, '""')}","${(analysis.script_strengths || '').replace(/"/g, '""')}","${(analysis.script_weaknesses || '').replace(/"/g, '""')}","${(analysis.genre_fit_reasoning || '').replace(/"/g, '""')}","${(analysis.tone_fit_reasoning || '').replace(/"/g, '""')}","${sub.submission_date}","${sub.cv_file ? sub.cv_file.name : ''}","${sub.sample_script ? sub.sample_script.name : ''}"\n`;
+    });
+    
+    const blob =
