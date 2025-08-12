@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+const isAdmin = currentAgent?.email === 'admin@playground.com';
+  const colors = getColorClasses(uxSettings.primaryColor);import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock } from 'lucide-react';
 
 const WriterSubmissionPortal = () => {
@@ -377,7 +378,65 @@ const WriterSubmissionPortal = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const isAdmin = currentAgent?.email === 'admin@playground.com';
+  const getColorClasses = (color) => {
+    const colorMap = {
+      indigo: {
+        bg: 'bg-indigo-600',
+        bgHover: 'bg-indigo-700',
+        bgDark: 'bg-indigo-800',
+        text: 'text-indigo-600',
+        textLight: 'text-indigo-200',
+        border: 'border-indigo-500',
+        borderHover: 'border-indigo-300'
+      },
+      blue: {
+        bg: 'bg-blue-600',
+        bgHover: 'bg-blue-700',
+        bgDark: 'bg-blue-800',
+        text: 'text-blue-600',
+        textLight: 'text-blue-200',
+        border: 'border-blue-500',
+        borderHover: 'border-blue-300'
+      },
+      purple: {
+        bg: 'bg-purple-600',
+        bgHover: 'bg-purple-700',
+        bgDark: 'bg-purple-800',
+        text: 'text-purple-600',
+        textLight: 'text-purple-200',
+        border: 'border-purple-500',
+        borderHover: 'border-purple-300'
+      },
+      green: {
+        bg: 'bg-green-600',
+        bgHover: 'bg-green-700',
+        bgDark: 'bg-green-800',
+        text: 'text-green-600',
+        textLight: 'text-green-200',
+        border: 'border-green-500',
+        borderHover: 'border-green-300'
+      },
+      red: {
+        bg: 'bg-red-600',
+        bgHover: 'bg-red-700',
+        bgDark: 'bg-red-800',
+        text: 'text-red-600',
+        textLight: 'text-red-200',
+        border: 'border-red-500',
+        borderHover: 'border-red-300'
+      },
+      gray: {
+        bg: 'bg-gray-600',
+        bgHover: 'bg-gray-700',
+        bgDark: 'bg-gray-800',
+        text: 'text-gray-600',
+        textLight: 'text-gray-200',
+        border: 'border-gray-500',
+        borderHover: 'border-gray-300'
+      }
+    };
+    return colorMap[color] || colorMap.indigo;
+  };
 
   if (!isLoggedIn) {
     return (
@@ -433,11 +492,11 @@ const WriterSubmissionPortal = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg">
-        <div className={`border-b border-gray-200 bg-${uxSettings.primaryColor}-600 text-white rounded-t-lg`}>
+        <div className={`border-b border-gray-200 ${colors.bg} text-white rounded-t-lg`}>
           <div className="flex justify-between items-center px-6 py-4">
             <div>
               <h1 className="text-xl font-bold">{uxSettings.companyName}</h1>
-              <p className={`text-${uxSettings.primaryColor}-200`}>{uxSettings.portalTitle}</p>
+              <p className={colors.textLight}>{uxSettings.portalTitle}</p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
@@ -446,7 +505,7 @@ const WriterSubmissionPortal = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className={`bg-${uxSettings.primaryColor}-700 hover:bg-${uxSettings.primaryColor}-800 px-3 py-2 rounded-lg flex items-center`}
+                className={`${colors.bgHover} hover:${colors.bgDark} px-3 py-2 rounded-lg flex items-center`}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -460,7 +519,7 @@ const WriterSubmissionPortal = () => {
               onClick={() => setActiveTab('assignments')}
               className={`py-4 px-2 border-b-2 font-medium text-sm ${
                 activeTab === 'assignments'
-                  ? `border-${uxSettings.primaryColor}-500 text-${uxSettings.primaryColor}-600`
+                  ? `${colors.border} ${colors.text}`
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -930,7 +989,7 @@ const WriterSubmissionPortal = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Open Writing Assignments</h2>
               <div className="grid gap-6">
                 {projects.filter(p => p.status === 'Active').map(project => (
-                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-${uxSettings.primaryColor}-300 transition-colors`}>
+                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-colors`}>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
@@ -982,7 +1041,7 @@ const WriterSubmissionPortal = () => {
                     
                     <button
                       onClick={() => selectProject(project)}
-                      className={`bg-${uxSettings.primaryColor}-600 text-white px-6 py-2 rounded-lg hover:bg-${uxSettings.primaryColor}-700 transition duration-200 font-medium`}
+                      className={`${colors.bg} text-white px-6 py-2 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
                     >
                       Submit Writer for This Project
                     </button>
@@ -1086,7 +1145,7 @@ const WriterSubmissionPortal = () => {
                     className={`flex-1 py-3 px-6 rounded-lg font-medium ${
                       isSubmitting 
                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : `${colors.bg} text-white hover:${colors.bgHover}`
                     }`}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Writer'}
