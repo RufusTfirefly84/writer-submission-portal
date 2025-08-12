@@ -217,7 +217,7 @@ const WriterSubmissionPortal = () => {
   };
 
   const deleteProject = (projectId) => {
-    if (confirm('Are you sure you want to delete this project?')) {
+    if (window.confirm('Are you sure you want to delete this project?')) {
       setProjects(prev => prev.filter(p => p.id !== projectId));
       alert('Project deleted!');
     }
