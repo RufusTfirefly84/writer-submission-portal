@@ -15,6 +15,20 @@ const WriterSubmissionPortal = () => {
     apiKey: ''
   });
   const [showConfig, setShowConfig] = useState(false);
+  const [showUXConfig, setShowUXConfig] = useState(false);
+  
+  const [uxSettings, setUxSettings] = useState({
+    companyName: 'Playground Entertainment',
+    portalTitle: 'Writer Submission Portal',
+    loginMessage: 'Access Playground Entertainment\'s open writing assignments',
+    primaryColor: 'indigo',
+    showDeadlines: true,
+    showBudgetInfo: true,
+    showNetworkInfo: true,
+    showRequirements: true,
+    customWelcomeMessage: '',
+    footerText: ''
+  });
 
   const agents = [
     { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
@@ -66,6 +80,11 @@ const WriterSubmissionPortal = () => {
     };
     setAirtableConfig(savedConfig);
 
+    const savedUxSettings = localStorage.getItem('uxSettings');
+    if (savedUxSettings) {
+      setUxSettings(JSON.parse(savedUxSettings));
+    }
+
     const savedAgent = localStorage.getItem('currentAgent');
     if (savedAgent) {
       setCurrentAgent(JSON.parse(savedAgent));
@@ -113,6 +132,12 @@ const WriterSubmissionPortal = () => {
     localStorage.setItem('airtableApiKey', airtableConfig.apiKey);
     setShowConfig(false);
     alert('Airtable configuration saved!');
+  };
+
+  const saveUxSettings = () => {
+    localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
+    setShowUXConfig(false);
+    alert('UX settings saved! Changes will apply immediately.');
   };
 
   const handleInputChange = (e) => {
@@ -264,7 +289,7 @@ const WriterSubmissionPortal = () => {
           <div className="text-center mb-8">
             <Lock className="mx-auto h-12 w-12 text-indigo-600 mb-4" />
             <h1 className="text-2xl font-bold text-gray-900">Agent Portal</h1>
-            <p className="text-gray-600 mt-2">Access Playground Entertainment's open writing assignments</p>
+            <p className="text-gray-600 mt-2">{uxSettings.loginMessage}</p>
           </div>
           
           <div className="space-y-6">
@@ -311,11 +336,11 @@ const WriterSubmissionPortal = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg">
-        <div className="border-b border-gray-200 bg-indigo-600 text-white rounded-t-lg">
+        <div className={`border-b border-gray-200 bg-${uxSettings.primaryColor}-600 text-white rounded-t-lg`}>
           <div className="flex justify-between items-center px-6 py-4">
             <div>
-              <h1 className="text-xl font-bold">Playground Entertainment</h1>
-              <p className="text-indigo-200">Writer Submission Portal</p>
+              <h1 className="text-xl font-bold">{uxSettings.companyName}</h1>
+              <p className={`text-${uxSettings.primaryColor}-200`}>{uxSettings.portalTitle}</p>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
@@ -324,7 +349,7 @@ const WriterSubmissionPortal = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded-lg flex items-center"
+                className={`bg-${uxSettings.primaryColor}-700 hover:bg-${uxSettings.primaryColor}-800 px-3 py-2 rounded-lg flex items-center`}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -338,7 +363,7 @@ const WriterSubmissionPortal = () => {
               onClick={() => setActiveTab('assignments')}
               className={`py-4 px-2 border-b-2 font-medium text-sm ${
                 activeTab === 'assignments'
-                  ? 'border-indigo-500 text-indigo-600'
+                  ? `border-${uxSettings.primaryColor}-500 text-${uxSettings.primaryColor}-600`
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -370,22 +395,165 @@ const WriterSubmissionPortal = () => {
               {isAdmin ? 'All Submissions' : 'My Submissions'}
             </button>
             {isAdmin && (
-              <button
-                onClick={() => setShowConfig(!showConfig)}
-                className={`py-4 px-2 border-b-2 font-medium text-sm ${
-                  showConfig
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Database className="inline w-4 h-4 mr-2" />
-                Admin Setup
-              </button>
+              <>
+                <button
+                  onClick={() => setShowConfig(!showConfig)}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm ${
+                    showConfig
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Database className="inline w-4 h-4 mr-2" />
+                  Database Setup
+                </button>
+                <button
+                  onClick={() => setShowUXConfig(!showUXConfig)}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm ${
+                    showUXConfig
+                      ? 'border-purple-500 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <User className="inline w-4 h-4 mr-2" />
+                  UX Designer
+                </button>
+              </>
             )}
           </div>
         </div>
 
         <div className="p-6">
+          {showUXConfig && isAdmin && (
+            <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <h3 className="text-lg font-semibold text-purple-900 mb-4">Agent UX Designer</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Company Name</label>
+                    <input
+                      type="text"
+                      value={uxSettings.companyName}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Portal Title</label>
+                    <input
+                      type="text"
+                      value={uxSettings.portalTitle}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Login Message</label>
+                    <input
+                      type="text"
+                      value={uxSettings.loginMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Custom Welcome Message</label>
+                    <textarea
+                      value={uxSettings.customWelcomeMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
+                      rows="3"
+                      className="w-full p-2 border border-purple-300 rounded"
+                      placeholder="Optional welcome message for agents..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-2">Primary Color</label>
+                    <select
+                      value={uxSettings.primaryColor}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="w-full p-2 border border-purple-300 rounded"
+                    >
+                      <option value="indigo">Indigo (Default)</option>
+                      <option value="blue">Blue</option>
+                      <option value="purple">Purple</option>
+                      <option value="green">Green</option>
+                      <option value="red">Red</option>
+                      <option value="gray">Gray</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-purple-700">Show/Hide Elements</label>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showDeadlines}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showDeadlines: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Show Deadlines</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showBudgetInfo}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showBudgetInfo: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Show Budget Information</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showNetworkInfo}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showNetworkInfo: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Show Network Information</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings.showRequirements}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, showRequirements: e.target.checked }))}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Show Project Requirements</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={saveUxSettings}
+                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                >
+                  Save UX Settings
+                </button>
+                <button
+                  onClick={() => setUxSettings({
+                    companyName: 'Playground Entertainment',
+                    portalTitle: 'Writer Submission Portal',
+                    loginMessage: 'Access Playground Entertainment\'s open writing assignments',
+                    primaryColor: 'indigo',
+                    showDeadlines: true,
+                    showBudgetInfo: true,
+                    showNetworkInfo: true,
+                    showRequirements: true,
+                    customWelcomeMessage: '',
+                    footerText: ''
+                  })}
+                  className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </div>
+          )}
+
           {showConfig && isAdmin && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="text-lg font-semibold text-blue-900 mb-4">Airtable Configuration</h3>
@@ -432,10 +600,15 @@ const WriterSubmissionPortal = () => {
 
           {activeTab === 'assignments' && (
             <div>
+              {uxSettings.customWelcomeMessage && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-blue-800">{uxSettings.customWelcomeMessage}</p>
+                </div>
+              )}
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Open Writing Assignments</h2>
               <div className="grid gap-6">
                 {projects.filter(p => p.status === 'Active').map(project => (
-                  <div key={project.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-indigo-300 transition-colors">
+                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-${uxSettings.primaryColor}-300 transition-colors`}>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h3>
@@ -448,38 +621,46 @@ const WriterSubmissionPortal = () => {
                             <span className="text-sm font-medium text-gray-500">Tone:</span>
                             <p className="text-gray-900">{project.tone}</p>
                           </div>
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">Budget:</span>
-                            <p className="text-gray-900">{project.budget}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">Network:</span>
-                            <p className="text-gray-900">{project.network}</p>
-                          </div>
+                          {uxSettings.showBudgetInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Budget:</span>
+                              <p className="text-gray-900">{project.budget}</p>
+                            </div>
+                          )}
+                          {uxSettings.showNetworkInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Network:</span>
+                              <p className="text-gray-900">{project.network}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="text-right ml-4">
                         <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                           {project.status}
                         </span>
-                        <p className="text-sm text-gray-500 mt-1">Deadline: {project.deadline}</p>
+                        {uxSettings.showDeadlines && (
+                          <p className="text-sm text-gray-500 mt-1">Deadline: {project.deadline}</p>
+                        )}
                       </div>
                     </div>
                     
                     <p className="text-gray-700 mb-4">{project.description}</p>
                     
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
-                      <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                        {project.requirements.map((req, index) => (
-                          <li key={index}>{req}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    {uxSettings.showRequirements && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
+                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                          {project.requirements.map((req, index) => (
+                            <li key={index}>{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     
                     <button
                       onClick={() => selectProject(project)}
-                      className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition duration-200 font-medium"
+                      className={`bg-${uxSettings.primaryColor}-600 text-white px-6 py-2 rounded-lg hover:bg-${uxSettings.primaryColor}-700 transition duration-200 font-medium`}
                     >
                       Submit Writer for This Project
                     </button>
