@@ -233,7 +233,15 @@ const WriterSubmissionPortal = () => {
 
       const submissionData = {
         id: Date.now(),
-        ...formData,
+        writerName: formData.writerName,
+        agentName: currentAgent.name,
+        agentCompany: currentAgent.agency,
+        email: currentAgent.email,
+        projectInterest: selectedProject.title,
+        availability: formData.availability,
+        pitch_summary: formData.pitch_summary,
+        cv_file: formData.cv_file,
+        sample_script: formData.sample_script,
         submission_date: new Date().toISOString().split('T')[0],
         analysis: mockAnalysis,
         overall_score: Math.floor((mockAnalysis.genre_match + mockAnalysis.tone_match + mockAnalysis.dialogue_quality + mockAnalysis.structure_score + mockAnalysis.character_development) / 5),
@@ -248,7 +256,12 @@ const WriterSubmissionPortal = () => {
         alert('Submission recorded! (Airtable not configured)');
       }
 
+      // Also keep local copy for dashboard
       setSubmissions(prev => [...prev, submissionData]);
+      
+      console.log('Submission added:', submissionData);
+      console.log('Current agent email:', currentAgent.email);
+      console.log('All submissions:', [...submissions, submissionData]);
       
       // Reset form but keep agent info
       setFormData({
@@ -615,6 +628,9 @@ const WriterSubmissionPortal = () => {
           {activeTab === 'dashboard' && (
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
+              <div className="mb-4 text-sm text-gray-600">
+                Showing submissions for: {currentAgent?.email}
+              </div>
               {submissions.filter(s => s.email === currentAgent?.email).length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
