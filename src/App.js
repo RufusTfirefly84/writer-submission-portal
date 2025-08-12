@@ -114,7 +114,8 @@ const WriterSubmissionPortal = () => {
           "Structure Score": submissionData.analysis.structure_score,
           "Character Development": submissionData.analysis.character_development,
           "Status": "New",
-          "Attachments": attachments.length > 0 ? attachments : undefined
+          "CV Filename": formData.cv_file ? formData.cv_file.name : '',
+"Script Filename": formData.sample_script ? formData.sample_script.name : ''
         }
       }]
     };
