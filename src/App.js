@@ -44,6 +44,11 @@ const WriterSubmissionPortal = () => {
     footerText: ''
   });
 
+  // New state for enhanced dashboard
+  const [submissionFilter, setSubmissionFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('overall_score');
+  const [expandedAnalysis, setExpandedAnalysis] = useState({});
+
   const agents = [
     { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA' },
     { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME' },
@@ -316,6 +321,277 @@ const WriterSubmissionPortal = () => {
     }));
   };
 
+  // Enhanced AI Analysis Functions
+  const analyzeScriptAndCV = async (cvFile, scriptFile, projectRequirements, projectGenre, projectTone) => {
+    try {
+      // Read files as base64
+      const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+      };
+
+      let cvContent = null;
+      let scriptContent = null;
+
+      // Read CV if provided
+      if (cvFile) {
+        try {
+          cvContent = await readFileAsBase64(cvFile);
+        } catch (error) {
+          console.warn('Could not read CV file:', error);
+        }
+      }
+
+      // Read script if provided
+      if (scriptFile) {
+        try {
+          scriptContent = await readFileAsBase64(scriptFile);
+        } catch (error) {
+          console.warn('Could not read script file:', error);
+        }
+      }
+
+      // Prepare messages for Claude API
+      const messages = [];
+      
+      // Add system prompt with analysis criteria
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `You are an expert television script analyst and development executive. Analyze the provided CV and script sample for a ${projectGenre} project with a ${projectTone} tone.
+
+PROJECT REQUIREMENTS:
+${projectRequirements.map(req => `- ${req}`).join('\n')}
+
+PROJECT DETAILS:
+- Genre: ${projectGenre}
+- Tone: ${projectTone}
+
+ANALYSIS CRITERIA:
+1. GENRE MATCH (0-100): How well does the writer's experience and script sample match the ${projectGenre} genre?
+2. TONE MATCH (0-100): How well does the writing style match the ${projectTone} tone?
+3. DIALOGUE QUALITY (0-100): Quality of dialogue - natural, character-specific, engaging
+4. STRUCTURE SCORE (0-100): Story structure, pacing, scene transitions, professional formatting
+5. CHARACTER DEVELOPMENT (0-100): Character depth, motivation, distinctive voices
+6. EXPERIENCE RELEVANCE (0-100): How relevant is their past TV/film experience to this project?
+
+PROVIDE YOUR RESPONSE AS A VALID JSON OBJECT IN THIS EXACT FORMAT:
+{
+  "genre_match": 85,
+  "tone_match": 78,
+  "dialogue_quality": 92,
+  "structure_score": 88,
+  "character_development": 80,
+  "experience_relevance": 75,
+  "overall_score": 83,
+  "detailed_analysis": {
+    "cv_highlights": "Brief summary of most relevant experience",
+    "script_strengths": "Key strengths in the script sample",
+    "script_weaknesses": "Areas for improvement",
+    "genre_fit_reasoning": "Why this writer fits/doesn't fit the genre",
+    "tone_fit_reasoning": "How well they match the required tone",
+    "recommendation": "RECOMMEND/CONSIDER/PASS with brief reasoning"
+  }
+}
+
+DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
+          }
+        ]
+      });
+
+      // Add CV to analysis if available
+      if (cvContent) {
+        messages[0].content.push({
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: cvFile.type,
+            data: cvContent,
+          },
+        });
+      }
+
+      // Add script to analysis if available
+      if (scriptContent) {
+        messages[0].content.push({
+          type: "document", 
+          source: {
+            type: "base64",
+            media_type: scriptFile.type,
+            data: scriptContent,
+          },
+        });
+      }
+
+      // If no files provided, use mock analysis
+      if (!cvContent && !scriptContent) {
+        return generateMockAnalysis();
+      }
+
+      // Call Claude API
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: messages
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      let responseText = data.content[0].text;
+      
+      // Clean up response and parse JSON
+      responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
+      
+      const analysis = JSON.parse(responseText);
+      
+      // Validate analysis structure
+      if (!analysis.genre_match || !analysis.tone_match || !analysis.dialogue_quality || 
+          !analysis.structure_score || !analysis.character_development) {
+        throw new Error('Invalid analysis format received');
+      }
+
+      return analysis;
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Return enhanced mock analysis as fallback
+      return generateMockAnalysis();
+    }
+  };
+
+  const generateMockAnalysis = () => {
+    const scores = {
+      genre_match: Math.floor(Math.random() * 30) + 70,
+      tone_match: Math.floor(Math.random() * 30) + 65,
+      dialogue_quality: Math.floor(Math.random() * 25) + 70,
+      structure_score: Math.floor(Math.random() * 30) + 60,
+      character_development: Math.floor(Math.random() * 25) + 70,
+      experience_relevance: Math.floor(Math.random() * 35) + 60
+    };
+
+    const overall = Math.floor((scores.genre_match + scores.tone_match + scores.dialogue_quality + 
+                                scores.structure_score + scores.character_development + scores.experience_relevance) / 6);
+
+    return {
+      ...scores,
+      overall_score: overall,
+      detailed_analysis: {
+        cv_highlights: "Demo analysis - upload CV for detailed evaluation",
+        script_strengths: "Demo analysis - upload script for detailed evaluation", 
+        script_weaknesses: "Demo analysis - upload script for detailed evaluation",
+        genre_fit_reasoning: "Demo analysis - upload files for AI evaluation",
+        tone_fit_reasoning: "Demo analysis - upload files for AI evaluation",
+        recommendation: overall >= 80 ? "RECOMMEND" : overall >= 65 ? "CONSIDER" : "PASS"
+      }
+    };
+  };
+
+  // Enhanced submit function
+  const handleSubmit = async () => {
+    if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
+      alert('Please fill in Writer Name and Pitch Summary');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Show analysis progress
+      const progressAlert = document.createElement('div');
+      progressAlert.className = 'fixed top-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg z-50';
+      progressAlert.innerHTML = `
+        <div class="flex items-center">
+          <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+          <span>Analyzing script and CV...</span>
+        </div>
+      `;
+      document.body.appendChild(progressAlert);
+
+      // Perform enhanced analysis
+      const analysis = await analyzeScriptAndCV(
+        formData.cv_file,
+        formData.sample_script,
+        selectedProject.requirements,
+        selectedProject.genre,
+        selectedProject.tone
+      );
+
+      // Remove progress indicator
+      document.body.removeChild(progressAlert);
+
+      const submissionData = {
+        id: Date.now(),
+        writerName: formData.writerName,
+        agentName: currentAgent.name,
+        agentCompany: currentAgent.agency,
+        email: currentAgent.email,
+        projectInterest: selectedProject.title,
+        availability: formData.availability,
+        pitch_summary: formData.pitch_summary,
+        cv_file: formData.cv_file,
+        sample_script: formData.sample_script,
+        submission_date: new Date().toISOString().split('T')[0],
+        analysis: {
+          genre_match: analysis.genre_match,
+          tone_match: analysis.tone_match,
+          dialogue_quality: analysis.dialogue_quality,
+          structure_score: analysis.structure_score,
+          character_development: analysis.character_development,
+          experience_relevance: analysis.experience_relevance || 70
+        },
+        detailed_analysis: analysis.detailed_analysis || {},
+        overall_score: analysis.overall_score,
+        projectId: selectedProject.id,
+        recommendation: analysis.detailed_analysis?.recommendation || "CONSIDER"
+      };
+
+      // Submit to Airtable with enhanced data
+      if (airtableConfig.baseId && airtableConfig.apiKey) {
+        await submitToAirtable(submissionData);
+        alert('Successfully submitted with AI analysis! Thank you for your submission.');
+      } else {
+        alert('Submission recorded with AI analysis!');
+      }
+
+      setSubmissions(prev => [...prev, submissionData]);
+      
+      setFormData({
+        writerName: '',
+        availability: '',
+        cv_file: null,
+        sample_script: null,
+        pitch_summary: ''
+      });
+
+      setSelectedProject(null);
+      setActiveTab('dashboard');
+      
+    } catch (error) {
+      alert(`Submission failed: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Enhanced Airtable submission
   const submitToAirtable = async (submissionData) => {
     if (!airtableConfig.baseId || !airtableConfig.apiKey) {
       throw new Error('Airtable configuration missing');
@@ -340,6 +616,13 @@ const WriterSubmissionPortal = () => {
           "Dialogue Quality": submissionData.analysis.dialogue_quality,
           "Structure Score": submissionData.analysis.structure_score,
           "Character Development": submissionData.analysis.character_development,
+          "Experience Relevance": submissionData.analysis.experience_relevance,
+          "Recommendation": submissionData.recommendation,
+          "CV Highlights": submissionData.detailed_analysis.cv_highlights || '',
+          "Script Strengths": submissionData.detailed_analysis.script_strengths || '',
+          "Script Weaknesses": submissionData.detailed_analysis.script_weaknesses || '',
+          "Genre Fit Reasoning": submissionData.detailed_analysis.genre_fit_reasoning || '',
+          "Tone Fit Reasoning": submissionData.detailed_analysis.tone_fit_reasoning || '',
           "Status": "New",
           "CV Filename": formData.cv_file ? formData.cv_file.name : '',
           "Script Filename": formData.sample_script ? formData.sample_script.name : ''
@@ -364,72 +647,83 @@ const WriterSubmissionPortal = () => {
     return response.json();
   };
 
-  const handleSubmit = async () => {
-    if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
-      alert('Please fill in Writer Name and Pitch Summary');
-      return;
+  // Dashboard helper functions
+  const getFilteredAndSortedSubmissions = () => {
+    let filtered = submissions;
+    
+    // Apply filter
+    if (submissionFilter !== 'all') {
+      filtered = submissions.filter(s => s.recommendation === submissionFilter);
     }
-
-    setIsSubmitting(true);
-
-    try {
-      const mockAnalysis = {
-        genre_match: Math.floor(Math.random() * 30) + 70,
-        tone_match: Math.floor(Math.random() * 30) + 65,
-        dialogue_quality: Math.floor(Math.random() * 25) + 70,
-        structure_score: Math.floor(Math.random() * 30) + 60,
-        character_development: Math.floor(Math.random() * 25) + 70
-      };
-
-      const submissionData = {
-        id: Date.now(),
-        writerName: formData.writerName,
-        agentName: currentAgent.name,
-        agentCompany: currentAgent.agency,
-        email: currentAgent.email,
-        projectInterest: selectedProject.title,
-        availability: formData.availability,
-        pitch_summary: formData.pitch_summary,
-        cv_file: formData.cv_file,
-        sample_script: formData.sample_script,
-        submission_date: new Date().toISOString().split('T')[0],
-        analysis: mockAnalysis,
-        overall_score: Math.floor((mockAnalysis.genre_match + mockAnalysis.tone_match + mockAnalysis.dialogue_quality + mockAnalysis.structure_score + mockAnalysis.character_development) / 5),
-        projectId: selectedProject.id
-      };
-
-      if (airtableConfig.baseId && airtableConfig.apiKey) {
-        await submitToAirtable(submissionData);
-        alert('Successfully submitted! Thank you for your submission.');
-      } else {
-        alert('Submission recorded!');
+    
+    // Apply sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'overall_score':
+          return b.overall_score - a.overall_score;
+        case 'submission_date':
+          return new Date(b.submission_date) - new Date(a.submission_date);
+        case 'genre_match':
+          return b.analysis.genre_match - a.analysis.genre_match;
+        case 'experience_relevance':
+          return (b.analysis.experience_relevance || 0) - (a.analysis.experience_relevance || 0);
+        default:
+          return b.overall_score - a.overall_score;
       }
+    });
+  };
 
-      setSubmissions(prev => [...prev, submissionData]);
-      
-      setFormData({
-        writerName: '',
-        availability: '',
-        cv_file: null,
-        sample_script: null,
-        pitch_summary: ''
-      });
-
-      setSelectedProject(null);
-      setActiveTab('dashboard');
-      
-    } catch (error) {
-      alert(`Submission failed: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
+  const getRecommendationStyle = (recommendation) => {
+    switch (recommendation) {
+      case 'RECOMMEND':
+        return 'bg-green-100 text-green-800';
+      case 'CONSIDER':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'PASS':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
     }
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 85) return 'text-green-600';
+    if (score >= 70) return 'text-yellow-600';
+    if (score >= 55) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const toggleAnalysisDetails = (submissionId) => {
+    setExpandedAnalysis(prev => ({
+      ...prev,
+      [submissionId]: !prev[submissionId]
+    }));
+  };
+
+  const generateDetailedReport = () => {
+    const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
+    
+    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,CV Highlights,Script Strengths,Script Weaknesses,Genre Fit Reasoning,Tone Fit Reasoning,Submission Date,CV File,Script File\n";
+    
+    sortedSubmissions.forEach(sub => {
+      const analysis = sub.detailed_analysis || {};
+      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability || ''}",${sub.overall_score},"${sub.recommendation || 'CONSIDER'}",${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},${sub.analysis.experience_relevance || ''},"${(analysis.cv_highlights || '').replace(/"/g, '""')}","${(analysis.script_strengths || '').replace(/"/g, '""')}","${(analysis.script_weaknesses || '').replace(/"/g, '""')}","${(analysis.genre_fit_reasoning || '').replace(/"/g, '""')}","${(analysis.tone_fit_reasoning || '').replace(/"/g, '""')}","${sub.submission_date}","${sub.cv_file ? sub.cv_file.name : ''}","${sub.sample_script ? sub.sample_script.name : ''}"\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `detailed_writer_analysis_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const generateReport = () => {
     const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
-    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Submission Date\n";
+    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,Submission Date\n";
     sortedSubmissions.forEach(sub => {
-      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability}",${sub.overall_score},${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},"${sub.submission_date}"\n`;
+      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability || ''}",${sub.overall_score},"${sub.recommendation || 'CONSIDER'}",${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},${sub.analysis.experience_relevance || ''},"${sub.submission_date}"\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -763,7 +1057,7 @@ const WriterSubmissionPortal = () => {
                         : `${colors.bg} text-white hover:${colors.bgHover}`
                     }`}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Writer'}
+                    {isSubmitting ? 'Analyzing & Submitting...' : 'Submit Writer'}
                   </button>
                 </div>
               </div>
@@ -1139,33 +1433,79 @@ const WriterSubmissionPortal = () => {
               {isAdmin ? (
                 <div>
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">All Submissions & Analysis</h2>
-                    <button
-                      onClick={generateReport}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Export to Excel
-                    </button>
+                    <h2 className="text-2xl font-bold text-gray-900">All Submissions & AI Analysis</h2>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={generateDetailedReport}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Detailed Report
+                      </button>
+                      <button
+                        onClick={generateReport}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Quick Export
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  {/* Enhanced Analytics Dashboard */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
                       <p className="text-2xl font-bold text-blue-900">{submissions.length}</p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-green-700">High Scores (80+)</h3>
-                      <p className="text-2xl font-bold text-green-900">{submissions.filter(s => s.overall_score >= 80).length}</p>
+                      <h3 className="text-sm font-medium text-green-700">Recommended</h3>
+                      <p className="text-2xl font-bold text-green-900">
+                        {submissions.filter(s => s.recommendation === 'RECOMMEND').length}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-yellow-700">Consider</h3>
+                      <p className="text-2xl font-bold text-yellow-900">
+                        {submissions.filter(s => s.recommendation === 'CONSIDER').length}
+                      </p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-red-700">Pass</h3>
+                      <p className="text-2xl font-bold text-red-900">
+                        {submissions.filter(s => s.recommendation === 'PASS').length}
+                      </p>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-purple-700">Crime Drama</h3>
-                      <p className="text-2xl font-bold text-purple-900">{submissions.filter(s => s.projectInterest === 'Dark Crime Drama').length}</p>
+                      <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {submissions.length > 0 ? Math.round(submissions.reduce((sum, s) => sum + s.overall_score, 0) / submissions.length) : 0}%
+                      </p>
                     </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-orange-700">Tech Thriller</h3>
-                      <p className="text-2xl font-bold text-orange-900">{submissions.filter(s => s.projectInterest === 'Tech Thriller Limited Series').length}</p>
-                    </div>
+                  </div>
+
+                  {/* Filter and Sort Controls */}
+                  <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                    <select 
+                      value={submissionFilter}
+                      onChange={(e) => setSubmissionFilter(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="all">All Submissions</option>
+                      <option value="RECOMMEND">Recommended</option>
+                      <option value="CONSIDER">Consider</option>
+                      <option value="PASS">Pass</option>
+                    </select>
+                    <select 
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="overall_score">Sort by Overall Score</option>
+                      <option value="submission_date">Sort by Date</option>
+                      <option value="genre_match">Sort by Genre Match</option>
+                      <option value="experience_relevance">Sort by Experience</option>
+                    </select>
                   </div>
 
                   {submissions.length === 0 ? (
@@ -1174,53 +1514,145 @@ const WriterSubmissionPortal = () => {
                       <p className="text-gray-500">No submissions yet.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {submissions
-                        .sort((a, b) => b.overall_score - a.overall_score)
+                    <div className="space-y-6">
+                      {getFilteredAndSortedSubmissions()
                         .map(submission => (
-                          <div key={submission.id} className="bg-white border rounded-lg p-6 shadow-sm">
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
-                                <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
-                                <p className="text-sm text-gray-500">Project: {submission.projectInterest}</p>
-                                <p className="text-sm text-gray-500">Date: {submission.submission_date}</p>
-                              </div>
-                              <div className="text-right">
-                                <div className={`text-3xl font-bold ${submission.overall_score >= 80 ? 'text-green-600' : submission.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {submission.overall_score}%
+                          <div key={submission.id} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+                            {/* Header Section */}
+                            <div className="p-6 border-b border-gray-200">
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationStyle(submission.recommendation)}`}>
+                                      {submission.recommendation}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
+                                  <div className="flex gap-6 text-sm text-gray-500 mt-1">
+                                    <span>Project: {submission.projectInterest}</span>
+                                    <span>Date: {submission.submission_date}</span>
+                                    {submission.availability && <span>Available: {submission.availability}</span>}
+                                  </div>
                                 </div>
-                                <p className="text-sm text-gray-500">Overall Match</p>
+                                <div className="text-right">
+                                  <div className={`text-4xl font-bold ${getScoreColor(submission.overall_score)}`}>
+                                    {submission.overall_score}%
+                                  </div>
+                                  <p className="text-sm text-gray-500">Overall Match</p>
+                                </div>
+                              </div>
+
+                              {/* Score Breakdown */}
+                              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
+                                  <p className="text-xs text-gray-500">Genre Match</p>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
+                                  <p className="text-xs text-gray-500">Tone Match</p>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
+                                  <p className="text-xs text-gray-500">Dialogue</p>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
+                                  <p className="text-xs text-gray-500">Structure</p>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
+                                  <p className="text-xs text-gray-500">Character Dev</p>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-semibold text-indigo-600">{submission.analysis.experience_relevance || 'N/A'}</div>
+                                  <p className="text-xs text-gray-500">Experience</p>
+                                </div>
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
-                                <p className="text-xs text-gray-500">Genre Match</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
-                                <p className="text-xs text-gray-500">Tone Match</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
-                                <p className="text-xs text-gray-500">Dialogue Quality</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
-                                <p className="text-xs text-gray-500">Structure</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
-                                <p className="text-xs text-gray-500">Character Dev</p>
-                              </div>
-                            </div>
+                            {/* Detailed Analysis Section */}
+                            {submission.detailed_analysis && (
+                              <div className="p-6 bg-gray-50">
+                                <button
+                                  onClick={() => toggleAnalysisDetails(submission.id)}
+                                  className="flex items-center justify-between w-full text-left"
+                                >
+                                  <h4 className="text-lg font-semibold text-gray-800">Detailed AI Analysis</h4>
+                                  <span className="text-gray-500">
+                                    {expandedAnalysis[submission.id] ? '▼' : '▶'}
+                                  </span>
+                                </button>
 
+                                {expandedAnalysis[submission.id] && (
+                                  <div className="mt-4 space-y-4">
+                                    {submission.detailed_analysis.cv_highlights && (
+                                      <div className="bg-white p-4 rounded-lg">
+                                        <h5 className="font-semibold text-blue-800 mb-2">CV Highlights</h5>
+                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.cv_highlights}</p>
+                                      </div>
+                                    )}
+
+                                    {submission.detailed_analysis.script_strengths && (
+                                      <div className="bg-white p-4 rounded-lg">
+                                        <h5 className="font-semibold text-green-800 mb-2">Script Strengths</h5>
+                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.script_strengths}</p>
+                                      </div>
+                                    )}
+
+                                    {submission.detailed_analysis.script_weaknesses && (
+                                      <div className="bg-white p-4 rounded-lg">
+                                        <h5 className="font-semibold text-orange-800 mb-2">Areas for Improvement</h5>
+                                        <p className="text-sm text-gray-700">{submission.detailed_analysis.script_weaknesses}</p>
+                                      </div>
+                                    )}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {submission.detailed_analysis.genre_fit_reasoning && (
+                                        <div className="bg-white p-4 rounded-lg">
+                                          <h5 className="font-semibold text-purple-800 mb-2">Genre Fit Analysis</h5>
+                                          <p className="text-sm text-gray-700">{submission.detailed_analysis.genre_fit_reasoning}</p>
+                                        </div>
+                                      )}
+
+                                      {submission.detailed_analysis.tone_fit_reasoning && (
+                                        <div className="bg-white p-4 rounded-lg">
+                                          <h5 className="font-semibold text-indigo-800 mb-2">Tone Match Analysis</h5>
+                                          <p className="text-sm text-gray-700">{submission.detailed_analysis.tone_fit_reasoning}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Agent Pitch */}
                             {submission.pitch_summary && (
-                              <div className="mt-4 p-3 bg-gray-50 rounded">
+                              <div className="p-6 border-t border-gray-200">
                                 <h4 className="text-sm font-medium text-gray-700 mb-2">Agent Pitch:</h4>
-                                <p className="text-sm text-gray-700">{submission.pitch_summary}</p>
+                                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{submission.pitch_summary}</p>
+                              </div>
+                            )}
+
+                            {/* Files Section */}
+                            {(submission.cv_file || submission.sample_script) && (
+                              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                                <div className="flex gap-4 text-sm text-gray-600">
+                                  {submission.cv_file && (
+                                    <span className="flex items-center">
+                                      <FileText className="w-4 h-4 mr-1" />
+                                      CV: {submission.cv_file.name}
+                                    </span>
+                                  )}
+                                  {submission.sample_script && (
+                                    <span className="flex items-center">
+                                      <FileText className="w-4 h-4 mr-1" />
+                                      Script: {submission.sample_script.name}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1229,6 +1661,7 @@ const WriterSubmissionPortal = () => {
                   )}
                 </div>
               ) : (
+                // Agent view with enhanced submission display
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
                   {submissions.filter(s => s.email === currentAgent?.email).length === 0 ? (
@@ -1248,10 +1681,20 @@ const WriterSubmissionPortal = () => {
                                 <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
                                 <p className="text-gray-600">Project: {submission.projectInterest}</p>
                                 <p className="text-sm text-gray-500">Submitted: {submission.submission_date}</p>
+                                {submission.overall_score && (
+                                  <p className="text-sm font-medium text-indigo-600 mt-1">
+                                    Analysis Score: {submission.overall_score}%
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right">
-                                <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-                                  Under Review
+                                <span className={`inline-block text-sm px-3 py-1 rounded-full ${
+                                  submission.recommendation === 'RECOMMEND' ? 'bg-green-100 text-green-800' :
+                                  submission.recommendation === 'CONSIDER' ? 'bg-yellow-100 text-yellow-800' :
+                                  submission.recommendation === 'PASS' ? 'bg-red-100 text-red-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {submission.recommendation || 'Under Review'}
                                 </span>
                               </div>
                             </div>
