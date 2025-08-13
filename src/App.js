@@ -37,7 +37,7 @@ function App() {
     customWelcomeMessage: '',
     requireCV: true,
     requireScript: true,
-    maxFileSize: 10 // MB
+    maxFileSize: 10
   });
 
   const [newProject, setNewProject] = useState({
@@ -711,6 +711,18 @@ function App() {
               value={loginData.email}
               onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="your@agency.com"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <input
+              type="password"
+              value={loginData.password}
+              onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Password"
               required
             />
@@ -843,21 +855,6 @@ function App() {
                     </div>
                   )}
                 </div>
-                
-                {project.targetDemographic && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Target Demo:</span>
-                      <p className="text-gray-900">{project.targetDemographic}</p>
-                    </div>
-                    {project.episodeCount && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Episodes:</span>
-                        <p className="text-gray-900">{project.episodeCount}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
               <div className="text-right ml-4">
                 <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mb-2">
@@ -1977,16 +1974,4 @@ function App() {
   );
 }
 
-export default App;digo-500"
-              placeholder="your@agency.com"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-            <input
-              type="password"
-              value={loginData.password}
-              onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-in
+export default App;
