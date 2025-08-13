@@ -1,296 +1,653 @@
-{/* Enhanced Dashboard */}
-          {activeTab === 'dashboard' && (
-            <div>
-              {isAdmin ? (
-                <div>
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                    <h2 className="text-2xl font-bold text-gray-900">All Submissions & AI Analysis</h2>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={refreshSubmissions}
-                        disabled={isLoading}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center disabled:opacity-50"
-                      >
-                        {isLoading ? <Loader className="animate-spin w-4 h-4 mr-2" /> : <Search className="w-4 h-4 mr-2" />}
-                        Refresh from Airtable
-                      </button>
-                      <button
-                        onClick={generateDetailedReport}
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Detailed Report
-                      </button>
-                      <button
-                        onClick={generateReport}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Quick Export
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Enhanced Analytics Dashboard */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
-                      <p className="text-2xl font-bold text-blue-900">{submissions.length}</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-green-700">Recommended</h3>
-                      <p className="text-2xl font-bold text-green-900">
-                        {submissions.filter(s => s.recommendation === 'RECOMMEND').length}
-                      </p>
-                    </div>
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-yellow-700">Consider</h3>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        {submissions.filter(s => s.recommendation === 'CONSIDER').length}
-                      </p>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-red-700">Pass</h3>
-                      <p className="text-2xl font-bold text-red-900">
-                        {submissions.filter(s => s.recommendation === 'PASS').length}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
-                      <p className="text-2xl font-bold text-purple-900">
-                        {submissions.length > 0 ? Math.round(submissions.reduce((sum, s) => sum + s.overall_score, 0) / submissions.length) : 0}%
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Enhanced Filter and Sort Controls */}
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-                        <select 
-                          value={submissionFilter}
-                          onChange={(e) => setSubmissionFilter(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        >
-                          <option value="all">All Submissions</option>
-                          <option value="RECOMMEND">Recommended</option>
-                          <option value="CONSIDER">Consider</option>
-                          <option value="PASS">Pass</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
-                        <select 
-                          value={sortBy}
-                          onChange={(e) => setSortBy(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        >
-                          <option value="overall_score">Overall Score</option>
-                          <option value="submission_date">Submission Date</option>
-                          <option value="genre_match">Genre Match</option>
-                          <option value="experience_relevance">Experience</option>
-                          <option value="writer_name">Writer Name</option>
-                          <option value="agent_name">Agent Name</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                        <input
-                          type="text"
-                          placeholder="Search writers, agents..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                        <div className="flex gap-1">
-                          <input
-                            type="date"
-                            value={dateRange.start}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                            className="flex-1 px-2 py-2 border border-gray-300 rounded text-xs"
-                          />
-                          <input
-                            type="date"
-                            value={dateRange.end}
-                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                            className="flex-1 px-2 py-2 border border-gray-300 rounded text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <span className="text-sm text-gray-600">
-                        Showing {getFilteredAndSortedSubmissions().length} of {submissions.length} submissions
-                      </span>
-                      {(searchTerm || dateRange.start || dateRange.end || submissionFilter !== 'all') && (
-                        <button
-                          onClick={() => {
-                            setSearchTerm('');
-                            setDateRange({ start: '', end: '' });
-                            setSubmissionFilter('all');
-                          }}
-                          className="text-sm text-indigo-600 hover:text-indigo-800"
-                        >
-                          Clear filters
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {submissions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No submissions yet. Click "Refresh from Airtable" if you have existing submissions.</p>
-                    </div>
-                  ) : getFilteredAndSortedSubmissions().length === 0 ? (
-                    <div className="text-center py-12">
-                      <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">No submissions match your current filters.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {getFilteredAndSortedSubmissions().map(submission => (
-                        <div key={submission.id} className="bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                          {/* Header Section */}
-                          <div className="p-6 border-b border-gray-200">
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
-                                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationStyle(submission.recommendation)}`}>
-                                    {submission.recommendation}
-                                  </span>
-                                </div>
-                                <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
-                                <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">
-                                  <span>Project: {submission.projectInterest}</span>
-                                  <span>Date: {submission.submission_date}</span>
-                                  {submission.availability && <span>Available: {submission.availability}</span>}
-                                  {submission.writerEmail && <span>Email: {submission.writerEmail}</span>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className={`text-4xl font-bold ${getScoreColor(submission.overall_score)}`}>
-                                  {submission.overall_score}%
-                                </div>
-                                <p className="text-sm text-gray-500">Overall Match</p>
-                              </div>
-                            </div>
-
-                            {/* Score Breakdown */}
-                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
-                                <p className="text-xs text-gray-500">Genre Match</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
-                                <p className="text-xs text-gray-500">Tone Match</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
-                                <p className="text-xs text-gray-500">Dialogue</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
-                                <p className="text-xs text-gray-500">Structure</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
-                                <p className="text-xs text-gray-500">Character Dev</p>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-lg font-semibold text-indigo-600">{submission.analysis.experience_relevance || 'N/A'}</div>
-                                <p className="text-xs text-gray-500">Experience</p>
-                              </div>
-                                    <div className="p-6">
-          {activeTab === 'assignments' && (
-            <div>
-              {uxSettings.customWelcomeMessage && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-blue-800">{uxSettings.customWelcomeMessage}</p>
+{/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
+                  <p className="text-3xl font-bold text-blue-900">{analytics.totalSubmissions}</p>
                 </div>
-              )}
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Open Writing Assignments</h2>
-                <div className="text-sm text-gray-500">
-                  {projects.filter(p => p.status === 'Active').length} active projects
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-green-700">Recommended</h3>
+                  <p className="text-3xl font-bold text-green-900">{analytics.recommended}</p>
+                  <p className="text-xs text-green-600">{analytics.recommendationRate}% rate</p>
+                </div>
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-yellow-700">Under Review</h3>
+                  <p className="text-3xl font-bold text-yellow-900">{analytics.considered}</p>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-red-700">Passed</h3>
+                  <p className="text-3xl font-bold text-red-900">{analytics.passed}</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
+                  <p className="text-3xl font-bold text-purple-900">{analytics.avgScore}%</p>
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-indigo-700">Last 30 Days</h3>
+                  <p className="text-3xl font-bold text-indigo-900">{analytics.last30Days}</p>
                 </div>
               </div>
-              <div className="grid gap-6">
-                {projects.filter(p => p.status === 'Active').map(project => (
-                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-all duration-200 hover:shadow-md`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-semibold text-gray-900">{project.title}</h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            project.priority === 'High' ? 'bg-red-100 text-red-800' :
-                            project.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {project.priority}
-                          </span>
+
+              {/* Charts would go here in a full implementation */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Performing Projects</h3>
+                  <div className="space-y-3">
+                    {projects.map(project => (
+                      <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <div>
+                          <p className="font-medium text-gray-900">{project.title}</p>
+                          <p className="text-sm text-gray-500">{project.genre}</p>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <span className="text-sm font-medium text-gray-500">Tone:</span>
-                            <p className="text-gray-900">{project.tone}</p>
-                          </div>
-                          {uxSettings.showBudgetInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Budget:</span>
-                              <p className="text-gray-900">{project.budget}</p>
-                            </div>
-                          )}
-                          {uxSettings.showNetworkInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Network:</span>
-                              <p className="text-gray-900">{project.network}</p>
-                            </div>
-                          )}
+                        <div className="text-right">
+                          <p className="font-semibold text-indigo-600">{project.submissionCount || 0}</p>
+                          <p className="text-xs text-gray-500">submissions</p>
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mb-2">
-                          {project.status}
-                        </span>
-                        {uxSettings.showDeadlines && (
-                          <p className="text-sm text-gray-500">Deadline: {project.deadline}</p>
-                        )}
-                        <p className="text-sm text-blue-600 font-medium">{project.submissionCount || 0} submissions</p>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-700 mb-4">{project.description}</p>
-                    
-                    {uxSettings.showRequirements && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
-                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                          {project.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={() => selectProject(project)}
-                      className={`${colors.bg} text-white px-6 py-2 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
-                    >
-                      Submit Writer for This Project
-                    </button>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Agencies</h3>
+                  <div className="space-y-3">
+                    {Array.from(new Set(submissions.map(s => s.agentCompany))).map(agency => {
+                      const agencySubmissions = submissions.filter(s => s.agentCompany === agency);
+                      const avgScore = agencySubmissions.length > 0 
+                        ? Math.round(agencySubmissions.reduce((sum, s) => sum + s.overall_score, 0) / agencySubmissions.length)
+                        : 0;
+                      return (
+                        <div key={agency} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                          <div>
+                            <p className="font-medium text-gray-900">{agency}</p>
+                            <p className="text-sm text-gray-500">{agencySubmissions.length} submissions</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-green-600">{avgScore}%</p>
+                            <p className="text-xs text-gray-500">avg score</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
+          {/* Database Configuration */}
+          {showConfig && isAdmin && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Database Configuration</h2>
+              
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Airtable Integration</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Base ID</label>
+                    <input
+                      type="text"
+                      value={config.airtable.baseId}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        airtable: { ...prev.airtable, baseId: e.target.value }
+                      }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="appXXXXXXXXXXXXXX"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Table ID</label>
+                    <input
+                      type="text"
+                      value={config.airtable.tableId}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        airtable: { ...prev.airtable, tableId: e.target.value }
+                      }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="tblWriterSubmissions"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                    <input
+                      type="password"
+                      value={config.airtable.apiKey}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        airtable: { ...prev.airtable, apiKey: e.target.value }
+                      }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="patXXXXXXXXXXXXXX"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={saveAirtableConfig}
+                  className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Save Airtable Config
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Project Manager */}
+          {showProjectConfig && isAdmin && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Project Manager</h2>
+              
+              {/* Add/Edit Project Form */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  {editingProject ? 'Edit Project' : 'Add New Project'}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Project Title</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.title : newProject.title}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, title: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, title: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="Project Title"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Genre</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.genre : newProject.genre}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, genre: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, genre: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="Crime Drama, Comedy, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.tone : newProject.tone}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, tone: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, tone: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="Dark, Light, Dramatic, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Network</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.network : newProject.network}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, network: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, network: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="Netflix, HBO, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Budget</label>
+                    <input
+                      type="text"
+                      value={editingProject ? editingProject.budget : newProject.budget}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, budget: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, budget: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="Low, Mid, High Budget"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
+                    <input
+                      type="date"
+                      value={editingProject ? editingProject.deadline : newProject.deadline}
+                      onChange={(e) => {
+                        if (editingProject) {
+                          setEditingProject(prev => ({ ...prev, deadline: e.target.value }));
+                        } else {
+                          setNewProject(prev => ({ ...prev, deadline: e.target.value }));
+                        }
+                      }}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={editingProject ? editingProject.description : newProject.description}
+                    onChange={(e) => {
+                      if (editingProject) {
+                        setEditingProject(prev => ({ ...prev, description: e.target.value }));
+                      } else {
+                        setNewProject(prev => ({ ...prev, description: e.target.value }));
+                      }
+                    }}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    rows="3"
+                    placeholder="Project description..."
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Requirements</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newRequirement}
+                      onChange={(e) => setNewRequirement(e.target.value)}
+                      className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="Add requirement..."
+                      onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    />
+                    <button
+                      onClick={addRequirement}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {(editingProject ? editingProject.requirements : newProject.requirements).map((req, index) => (
+                      <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                        <span>{req}</span>
+                        <button
+                          onClick={() => removeRequirement(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 mt-6">
+                  <button
+                    onClick={saveProject}
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+                  >
+                    {editingProject ? 'Update Project' : 'Create Project'}
+                  </button>
+                  {editingProject && (
+                    <button
+                      onClick={cancelEdit}
+                      className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Existing Projects List */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Existing Projects</h3>
+                <div className="space-y-4">
+                  {projects.map(project => (
+                    <div key={project.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">{project.title}</h4>
+                          <p className="text-sm text-gray-600">{project.genre} • {project.tone}</p>
+                          <p className="text-sm text-gray-500">Deadline: {project.deadline}</p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            onClick={() => editProject(project)}
+                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteProject(project.id)}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* UX Configuration */}
+          {showUXConfig && isAdmin && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">UX Designer</h2>
+              
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Branding & Appearance</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                    <input
+                      type="text"
+                      value={uxSettings.companyName}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Portal Title</label>
+                    <input
+                      type="text"
+                      value={uxSettings.portalTitle}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
+                    <select
+                      value={uxSettings.primaryColor}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    >
+                      <option value="indigo">Indigo</option>
+                      <option value="blue">Blue</option>
+                      <option value="purple">Purple</option>
+                      <option value="green">Green</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Login Message</label>
+                    <input
+                      type="text"
+                      value={uxSettings.loginMessage}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Custom Welcome Message</label>
+                  <textarea
+                    value={uxSettings.customWelcomeMessage}
+                    onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    rows="3"
+                    placeholder="Optional welcome message for the assignments page..."
+                  />
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="text-md font-semibold text-gray-800 mb-3">Display Options</h4>
+                  <div className="space-y-3">
+                    {[
+                      { key: 'showDeadlines', label: 'Show Project Deadlines' },
+                      { key: 'showBudgetInfo', label: 'Show Budget Information' },
+                      { key: 'showNetworkInfo', label: 'Show Network Information' },
+                      { key: 'showRequirements', label: 'Show Project Requirements' },
+                      { key: 'enableNotifications', label: 'Enable Notifications' },
+                      { key: 'enableAnalytics', label: 'Enable Analytics' }
+                    ].map(option => (
+                      <label key={option.key} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={uxSettings[option.key]}
+                          onChange={(e) => setUxSettings(prev => ({ ...prev, [option.key]: e.target.checked }))}
+                          className="mr-3 h-4 w-4 text-indigo-600"
+                        />
+                        <span className="text-sm text-gray-700">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={saveUxSettings}
+                  className="mt-6 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+                >
+                  Save UX Settings
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Advanced Settings */}
+          {showAdvancedConfig && isAdmin && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Advanced Settings</h2>
+              
+              {/* Claude AI Configuration */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Claude AI Analysis</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={config.claude.enabled}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        claude: { ...prev.claude, enabled: e.target.checked }
+                      }))}
+                      className="mr-3 h-4 w-4 text-indigo-600"
+                    />
+                    <span className="text-sm text-gray-700">Enable Claude AI Analysis</span>
+                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Claude API Key</label>
+                    <input
+                      type="password"
+                      value={config.claude.apiKey}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        claude: { ...prev.claude, apiKey: e.target.value }
+                      }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      placeholder="sk-ant-XXXXXXXXXXXXXXXX"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={saveClaudeConfig}
+                  className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
+                >
+                  Save Claude Config
+                </button>
+              </div>
+
+              {/* Email Configuration */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Email Notifications</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={config.email.enabled}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        email: { ...prev.email, enabled: e.target.checked }
+                      }))}
+                      className="mr-3 h-4 w-4 text-indigo-600"
+                    />
+                    <span className="text-sm text-gray-700">Enable Email Notifications</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Host</label>
+                      <input
+                        type="text"
+                        value={config.email.smtpHost}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          email: { ...prev.email, smtpHost: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="smtp.gmail.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Port</label>
+                      <input
+                        type="text"
+                        value={config.email.smtpPort}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          email: { ...prev.email, smtpPort: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="587"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                      <input
+                        type="text"
+                        value={config.email.username}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          email: { ...prev.email, username: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                      <input
+                        type="password"
+                        value={config.email.password}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          email: { ...prev.email, password: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="App password or SMTP password"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">From Email</label>
+                      <input
+                        type="email"
+                        value={config.email.fromEmail}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          email: { ...prev.email, fromEmail: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="notifications@yourcompany.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={saveEmailConfig}
+                  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Save Email Config
+                </button>
+              </div>
+
+              {/* Cloudinary Configuration */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">File Storage (Cloudinary)</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={config.cloudinary.enabled}
+                      onChange={(e) => setConfig(prev => ({
+                        ...prev,
+                        cloudinary: { ...prev.cloudinary, enabled: e.target.checked }
+                      }))}
+                      className="mr-3 h-4 w-4 text-indigo-600"
+                    />
+                    <span className="text-sm text-gray-700">Enable Cloudinary File Storage</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Cloud Name</label>
+                      <input
+                        type="text"
+                        value={config.cloudinary.cloudName}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          cloudinary: { ...prev.cloudinary, cloudName: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="your-cloud-name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                      <input
+                        type="text"
+                        value={config.cloudinary.apiKey}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          cloudinary: { ...prev.cloudinary, apiKey: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="123456789012345"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">API Secret</label>
+                      <input
+                        type="password"
+                        value={config.cloudinary.apiSecret}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          cloudinary: { ...prev.cloudinary, apiSecret: e.target.value }
+                        }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg"
+                        placeholder="API Secret"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={saveCloudinaryConfig}
+                  className="mt-4 bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700"
+                >
+                  Save Cloudinary Config
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;          )}
+
+          {/* Submit Tab */}
           {activeTab === 'submit' && selectedProject && (
             <div>
               <div className={`mb-6 p-4 ${colors.textLight.replace('text-', 'bg-').replace('-200', '-50')} rounded-lg border border-indigo-200`}>
@@ -508,82 +865,7 @@
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Analytics Dashboard</h2>
               
-              {/* Key Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
-                  <p className="text-3xl font-bold text-blue-900">{analytics.totalSubmissions}</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-green-700">Recommended</h3>
-                  <p className="text-3xl font-bold text-green-900">{analytics.recommended}</p>
-                  <p className="text-xs text-green-600">{analytics.recommendationRate}% rate</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-yellow-700">Under Review</h3>
-                  <p className="text-3xl font-bold text-yellow-900">{analytics.considered}</p>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-red-700">Passed</h3>
-                  <p className="text-3xl font-bold text-red-900">{analytics.passed}</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
-                  <p className="text-3xl font-bold text-purple-900">{analytics.avgScore}%</p>
-                </div>
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-indigo-700">Last 30 Days</h3>
-                  <p className="text-3xl font-bold text-indigo-900">{analytics.last30Days}</p>
-                </div>
-              </div>
-
-              {/* Charts would go here in a full implementation */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Performing Projects</h3>
-                  <div className="space-y-3">
-                    {projects.map(project => (
-                      <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium text-gray-900">{project.title}</p>
-                          <p className="text-sm text-gray-500">{project.genre}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-indigo-600">{project.submissionCount || 0}</p>
-                          <p className="text-xs text-gray-500">submissions</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Agencies</h3>
-                  <div className="space-y-3">
-                    {Array.from(new Set(submissions.map(s => s.agentCompany))).map(agency => {
-                      const agencySubmissions = submissions.filter(s => s.agentCompany === agency);
-                      const avgScore = agencySubmissions.length > 0 
-                        ? Math.round(agencySubmissions.reduce((sum, s) => sum + s.overall_score, 0) / agencySubmissions.length)
-                        : 0;
-                      return (
-                        <div key={agency} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                          <div>
-                            <p className="font-medium text-gray-900">{agency}</p>
-                            <p className="text-sm text-gray-500">{agencySubmissions.length} submissions</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-600">{avgScore}%</p>
-                            <p className="text-xs text-gray-500">avg score</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-                          import React, { useState, useEffect } from 'react';
+              {/* Key Metrics */}import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock, Mail, AlertCircle, CheckCircle, Loader, Settings, Users, BarChart3 } from 'lucide-react';
 import './App.css';
 
@@ -1961,3 +2243,379 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
             )}
           </div>
         </div>
+
+        <div className="p-6">
+          {/* Enhanced Dashboard */}
+          {activeTab === 'dashboard' && (
+            <div>
+              {isAdmin ? (
+                <div>
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+                    <h2 className="text-2xl font-bold text-gray-900">All Submissions & AI Analysis</h2>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={refreshSubmissions}
+                        disabled={isLoading}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center disabled:opacity-50"
+                      >
+                        {isLoading ? <Loader className="animate-spin w-4 h-4 mr-2" /> : <Search className="w-4 h-4 mr-2" />}
+                        Refresh from Airtable
+                      </button>
+                      <button
+                        onClick={generateDetailedReport}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Quick Export
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Analytics Dashboard */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
+                      <p className="text-2xl font-bold text-blue-900">{submissions.length}</p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-green-700">Recommended</h3>
+                      <p className="text-2xl font-bold text-green-900">
+                        {submissions.filter(s => s.recommendation === 'RECOMMEND').length}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-yellow-700">Consider</h3>
+                      <p className="text-2xl font-bold text-yellow-900">
+                        {submissions.filter(s => s.recommendation === 'CONSIDER').length}
+                      </p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-red-700">Pass</h3>
+                      <p className="text-2xl font-bold text-red-900">
+                        {submissions.filter(s => s.recommendation === 'PASS').length}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {submissions.length > 0 ? Math.round(submissions.reduce((sum, s) => sum + s.overall_score, 0) / submissions.length) : 0}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Enhanced Filter and Sort Controls */}
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
+                        <select 
+                          value={submissionFilter}
+                          onChange={(e) => setSubmissionFilter(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        >
+                          <option value="all">All Submissions</option>
+                          <option value="RECOMMEND">Recommended</option>
+                          <option value="CONSIDER">Consider</option>
+                          <option value="PASS">Pass</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sort by</label>
+                        <select 
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        >
+                          <option value="overall_score">Overall Score</option>
+                          <option value="submission_date">Submission Date</option>
+                          <option value="genre_match">Genre Match</option>
+                          <option value="experience_relevance">Experience</option>
+                          <option value="writer_name">Writer Name</option>
+                          <option value="agent_name">Agent Name</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                        <input
+                          type="text"
+                          placeholder="Search writers, agents..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                        <div className="flex gap-1">
+                          <input
+                            type="date"
+                            value={dateRange.start}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                            className="flex-1 px-2 py-2 border border-gray-300 rounded text-xs"
+                          />
+                          <input
+                            type="date"
+                            value={dateRange.end}
+                            onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                            className="flex-1 px-2 py-2 border border-gray-300 rounded text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <span className="text-sm text-gray-600">
+                        Showing {getFilteredAndSortedSubmissions().length} of {submissions.length} submissions
+                      </span>
+                      {(searchTerm || dateRange.start || dateRange.end || submissionFilter !== 'all') && (
+                        <button
+                          onClick={() => {
+                            setSearchTerm('');
+                            setDateRange({ start: '', end: '' });
+                            setSubmissionFilter('all');
+                          }}
+                          className="text-sm text-indigo-600 hover:text-indigo-800"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {submissions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No submissions yet. Click "Refresh from Airtable" if you have existing submissions.</p>
+                    </div>
+                  ) : getFilteredAndSortedSubmissions().length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No submissions match your current filters.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {getFilteredAndSortedSubmissions().map(submission => (
+                        <div key={submission.id} className="bg-white border rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                          {/* Header Section */}
+                          <div className="p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-xl font-semibold text-gray-900">{submission.writerName}</h3>
+                                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRecommendationStyle(submission.recommendation)}`}>
+                                    {submission.recommendation}
+                                  </span>
+                                </div>
+                                <p className="text-gray-600">Submitted by {submission.agentName} ({submission.agentCompany})</p>
+                                <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">
+                                  <span>Project: {submission.projectInterest}</span>
+                                  <span>Date: {submission.submission_date}</span>
+                                  {submission.availability && <span>Available: {submission.availability}</span>}
+                                  {submission.writerEmail && <span>Email: {submission.writerEmail}</span>}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className={`text-4xl font-bold ${getScoreColor(submission.overall_score)}`}>
+                                  {submission.overall_score}%
+                                </div>
+                                <p className="text-sm text-gray-500">Overall Match</p>
+                              </div>
+                            </div>
+
+                            {/* Score Breakdown */}
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-blue-600">{submission.analysis.genre_match}%</div>
+                                <p className="text-xs text-gray-500">Genre Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-purple-600">{submission.analysis.tone_match}%</div>
+                                <p className="text-xs text-gray-500">Tone Match</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-green-600">{submission.analysis.dialogue_quality}%</div>
+                                <p className="text-xs text-gray-500">Dialogue</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-orange-600">{submission.analysis.structure_score}%</div>
+                                <p className="text-xs text-gray-500">Structure</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-red-600">{submission.analysis.character_development}%</div>
+                                <p className="text-xs text-gray-500">Character Dev</p>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-semibold text-indigo-600">{submission.analysis.experience_relevance || 'N/A'}</div>
+                                <p className="text-xs text-gray-500">Experience</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expandable Analysis Details */}
+                          {expandedAnalysis[submission.id] && submission.detailed_analysis && (
+                            <div className="p-6 bg-gray-50 border-b">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <h4 className="font-semibold text-gray-800 mb-2">CV Highlights</h4>
+                                  <p className="text-sm text-gray-600 mb-4">{submission.detailed_analysis.cv_highlights || 'No analysis available'}</p>
+                                  
+                                  <h4 className="font-semibold text-gray-800 mb-2">Script Strengths</h4>
+                                  <p className="text-sm text-gray-600">{submission.detailed_analysis.script_strengths || 'No analysis available'}</p>
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-800 mb-2">Areas for Improvement</h4>
+                                  <p className="text-sm text-gray-600 mb-4">{submission.detailed_analysis.script_weaknesses || 'No analysis available'}</p>
+                                  
+                                  <h4 className="font-semibold text-gray-800 mb-2">Genre & Tone Fit</h4>
+                                  <p className="text-sm text-gray-600">{submission.detailed_analysis.genre_fit_reasoning || 'No analysis available'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Action Bar */}
+                          <div className="p-4 bg-gray-50 flex justify-between items-center">
+                            <div className="flex gap-4 text-sm text-gray-600">
+                              {submission.cv_file && (
+                                <span>📄 CV: {submission.cv_file.name}</span>
+                              )}
+                              {submission.sample_script && (
+                                <span>📝 Script: {submission.sample_script.name}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => toggleAnalysisDetails(submission.id)}
+                              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                            >
+                              {expandedAnalysis[submission.id] ? 'Hide Details' : 'Show Analysis Details'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">My Submissions</h2>
+                  <div className="space-y-4">
+                    {submissions.filter(s => s.email === currentAgent.email).map(submission => (
+                      <div key={submission.id} className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">{submission.writerName}</h3>
+                            <p className="text-gray-600">Project: {submission.projectInterest}</p>
+                            <p className="text-sm text-gray-500">Submitted: {submission.submission_date}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold ${getScoreColor(submission.overall_score)}`}>
+                              {submission.overall_score}%
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRecommendationStyle(submission.recommendation)}`}>
+                              {submission.recommendation}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {submissions.filter(s => s.email === currentAgent.email).length === 0 && (
+                      <div className="text-center py-12">
+                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No submissions yet. Submit a writer to get started!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Assignments Tab */}
+          {activeTab === 'assignments' && (
+            <div>
+              {uxSettings.customWelcomeMessage && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-blue-800">{uxSettings.customWelcomeMessage}</p>
+                </div>
+              )}
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Open Writing Assignments</h2>
+                <div className="text-sm text-gray-500">
+                  {projects.filter(p => p.status === 'Active').length} active projects
+                </div>
+              </div>
+              <div className="grid gap-6">
+                {projects.filter(p => p.status === 'Active').map(project => (
+                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-all duration-200 hover:shadow-md`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-semibold text-gray-900">{project.title}</h3>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            project.priority === 'High' ? 'bg-red-100 text-red-800' :
+                            project.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {project.priority}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Tone:</span>
+                            <p className="text-gray-900">{project.tone}</p>
+                          </div>
+                          {uxSettings.showBudgetInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Budget:</span>
+                              <p className="text-gray-900">{project.budget}</p>
+                            </div>
+                          )}
+                          {uxSettings.showNetworkInfo && (
+                            <div>
+                              <span className="text-sm font-medium text-gray-500">Network:</span>
+                              <p className="text-gray-900">{project.network}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right ml-4">
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mb-2">
+                          {project.status}
+                        </span>
+                        {uxSettings.showDeadlines && (
+                          <p className="text-sm text-gray-500">Deadline: {project.deadline}</p>
+                        )}
+                        <p className="text-sm text-blue-600 font-medium">{project.submissionCount || 0} submissions</p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 mb-4">{project.description}</p>
+                    
+                    {uxSettings.showRequirements && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
+                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                          {project.requirements.map((req, index) => (
+                            <li key={index}>{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => selectProject(project)}
+                      className={`${colors.bg} text-white px-6 py-2 rounded-lg hover:${colors.bgHover} transition duration-200 font-medium`}
+                    >
+                      Submit Writer for This Project
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )} mr-2" />
+                        Detailed Report
+                      </button>
+                      <button
+                        onClick={generateReport}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center"
+                      >
+                        <Download className="w-4 h-4
