@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock, Mail, AlertCircle, CheckCircle, Loader, Settings, Users, BarChart3 } from 'lucide-react';
+import { Upload, FileText, User, Briefcase, Download, Search, Database, LogOut, Lock, AlertCircle, CheckCircle, Loader, Settings, BarChart3 } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -10,52 +10,15 @@ function App() {
   const [submissions, setSubmissions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  
-  // Enhanced configuration state
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expandedAnalysis, setExpandedAnalysis] = useState({});
+
   const [config, setConfig] = useState({
-    airtable: {
-      baseId: '',
-      tableId: '',
-      apiKey: ''
-    },
-    claude: {
-      apiKey: '',
-      enabled: false
-    },
-    email: {
-      enabled: false,
-      smtpHost: '',
-      smtpPort: '587',
-      username: '',
-      password: '',
-      fromEmail: ''
-    },
-    cloudinary: {
-      cloudName: '',
-      apiKey: '',
-      apiSecret: '',
-      enabled: false
-    }
+    claude: { apiKey: '', enabled: false },
+    airtable: { baseId: '', tableId: '', apiKey: '' }
   });
-  
-  const [showConfig, setShowConfig] = useState(false);
-  const [showUXConfig, setShowUXConfig] = useState(false);
-  const [showProjectConfig, setShowProjectConfig] = useState(false);
-  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
-  const [newProject, setNewProject] = useState({
-    title: '',
-    genre: '',
-    tone: '',
-    budget: '',
-    network: '',
-    description: '',
-    deadline: '',
-    status: 'Active',
-    requirements: []
-  });
-  const [newRequirement, setNewRequirement] = useState('');
-  
+
   const [uxSettings, setUxSettings] = useState({
     companyName: 'Playground Entertainment',
     portalTitle: 'Writer Submission Portal',
@@ -65,27 +28,15 @@ function App() {
     showBudgetInfo: true,
     showNetworkInfo: true,
     showRequirements: true,
-    customWelcomeMessage: '',
-    footerText: '',
-    enableNotifications: true,
-    enableAnalytics: true
+    customWelcomeMessage: ''
   });
 
-  // Enhanced dashboard state
-  const [submissionFilter, setSubmissionFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('overall_score');
-  const [expandedAnalysis, setExpandedAnalysis] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [showConfig, setShowConfig] = useState(false);
+  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
 
-  // Enhanced agents with more realistic data
   const agents = [
-    { id: 1, email: 'agent@caa.com', password: 'demo123', name: 'Sarah Johnson', agency: 'CAA', phone: '+1-555-0101', verified: true },
-    { id: 2, email: 'agent@wme.com', password: 'demo123', name: 'Mike Chen', agency: 'WME', phone: '+1-555-0102', verified: true },
-    { id: 3, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency', phone: '+1-555-0103', verified: true },
-    { id: 4, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment', phone: '+1-555-0100', verified: true, role: 'admin' }
+    { id: 1, email: 'demo@agent.com', password: 'demo', name: 'Demo Agent', agency: 'Demo Agency' },
+    { id: 2, email: 'admin@playground.com', password: 'admin123', name: 'Admin User', agency: 'Playground Entertainment', role: 'admin' }
   ];
 
   const [projects, setProjects] = useState([
@@ -110,7 +61,7 @@ function App() {
       tone: "Contemporary, Suspenseful",
       budget: "High-Budget ($25M+)",
       network: "Streaming Platform",
-      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley. Explores themes of technology vs humanity.",
+      description: "6-episode limited series about AI consciousness and corporate espionage in Silicon Valley.",
       deadline: "2025-08-30",
       status: "Active",
       requirements: ["Limited series experience", "Tech industry knowledge helpful", "Strong dialogue skills", "Available immediately"],
@@ -136,38 +87,9 @@ function App() {
       indigo: {
         bg: 'bg-indigo-600',
         bgHover: 'bg-indigo-700',
-        bgDark: 'bg-indigo-800',
         text: 'text-indigo-600',
         textLight: 'text-indigo-200',
-        border: 'border-indigo-500',
-        borderHover: 'border-indigo-300'
-      },
-      blue: {
-        bg: 'bg-blue-600',
-        bgHover: 'bg-blue-700',
-        bgDark: 'bg-blue-800',
-        text: 'text-blue-600',
-        textLight: 'text-blue-200',
-        border: 'border-blue-500',
-        borderHover: 'border-blue-300'
-      },
-      purple: {
-        bg: 'bg-purple-600',
-        bgHover: 'bg-purple-700',
-        bgDark: 'bg-purple-800',
-        text: 'text-purple-600',
-        textLight: 'text-purple-200',
-        border: 'border-purple-500',
-        borderHover: 'border-purple-300'
-      },
-      green: {
-        bg: 'bg-green-600',
-        bgHover: 'bg-green-700',
-        bgDark: 'bg-green-800',
-        text: 'text-green-600',
-        textLight: 'text-green-200',
-        border: 'border-green-500',
-        borderHover: 'border-green-300'
+        border: 'border-indigo-500'
       }
     };
     return colorMap[color] || colorMap.indigo;
@@ -176,160 +98,21 @@ function App() {
   const isAdmin = currentAgent?.email === 'admin@playground.com';
   const colors = getColorClasses(uxSettings.primaryColor);
 
-  // Enhanced AI Analysis with Real Claude API
-  const analyzeWithClaudeAPI = async (cvFile, scriptFile, projectRequirements, projectGenre, projectTone) => {
-    if (!config.claude.apiKey || !config.claude.enabled) {
-      return generateMockAnalysis();
-    }
-
-    try {
-      const readFileAsBase64 = (file) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result.split(",")[1];
-            resolve(base64);
-          };
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
-      };
-
-      let cvContent = null;
-      let scriptContent = null;
-
-      if (cvFile) {
-        try {
-          cvContent = await readFileAsBase64(cvFile);
-        } catch (error) {
-          console.warn('Could not read CV file:', error);
-        }
-      }
-
-      if (scriptFile) {
-        try {
-          scriptContent = await readFileAsBase64(scriptFile);
-        } catch (error) {
-          console.warn('Could not read script file:', error);
-        }
-      }
-
-      const messages = [];
-      
-      messages.push({
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `You are an expert television script analyst and development executive. Analyze the provided CV and script sample for a ${projectGenre} project with a ${projectTone} tone.
-
-PROJECT REQUIREMENTS:
-${projectRequirements.map(req => `- ${req}`).join('\n')}
-
-PROJECT DETAILS:
-- Genre: ${projectGenre}
-- Tone: ${projectTone}
-
-ANALYSIS CRITERIA:
-1. GENRE MATCH (0-100): How well does the writer's experience and script sample match the ${projectGenre} genre?
-2. TONE MATCH (0-100): How well does the writing style match the ${projectTone} tone?
-3. DIALOGUE QUALITY (0-100): Quality of dialogue - natural, character-specific, engaging
-4. STRUCTURE SCORE (0-100): Story structure, pacing, scene transitions, professional formatting
-5. CHARACTER DEVELOPMENT (0-100): Character depth, motivation, distinctive voices
-6. EXPERIENCE RELEVANCE (0-100): How relevant is their past TV/film experience to this project?
-
-PROVIDE YOUR RESPONSE AS A VALID JSON OBJECT IN THIS EXACT FORMAT:
-{
-  "genre_match": 85,
-  "tone_match": 78,
-  "dialogue_quality": 92,
-  "structure_score": 88,
-  "character_development": 80,
-  "experience_relevance": 75,
-  "overall_score": 83,
-  "detailed_analysis": {
-    "cv_highlights": "Brief summary of most relevant experience",
-    "script_strengths": "Key strengths in the script sample",
-    "script_weaknesses": "Areas for improvement",
-    "genre_fit_reasoning": "Why this writer fits/doesn't fit the genre",
-    "tone_fit_reasoning": "How well they match the required tone",
-    "recommendation": "RECOMMEND/CONSIDER/PASS with brief reasoning",
-    "marketability": "Assessment of writer's market appeal",
-    "unique_voice": "What makes this writer's voice distinctive"
-  }
-}
-
-DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
-          }
-        ]
-      });
-
-      if (cvContent) {
-        messages[0].content.push({
-          type: "document",
-          source: {
-            type: "base64",
-            media_type: cvFile.type,
-            data: cvContent,
-          },
-        });
-      }
-
-      if (scriptContent) {
-        messages[0].content.push({
-          type: "document", 
-          source: {
-            type: "base64",
-            media_type: scriptFile.type,
-            data: scriptContent,
-          },
-        });
-      }
-
-      if (!cvContent && !scriptContent) {
-        return generateMockAnalysis();
-      }
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": config.claude.apiKey,
-        },
-        body: JSON.stringify({
-          model: "claude-3-sonnet-20240229",
-          max_tokens: 2000,
-          messages: messages
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Claude API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      let responseText = data.content[0].text;
-      
-      responseText = responseText.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
-      
-      const analysis = JSON.parse(responseText);
-      
-      if (!analysis.genre_match || !analysis.tone_match || !analysis.dialogue_quality || 
-          !analysis.structure_score || !analysis.character_development) {
-        throw new Error('Invalid analysis format received');
-      }
-
-      addNotification('success', 'AI Analysis completed successfully using Claude API');
-      return analysis;
-
-    } catch (error) {
-      console.error('Claude API Analysis failed:', error);
-      addNotification('error', `AI Analysis failed: ${error.message}. Using fallback analysis.`);
-      return generateMockAnalysis();
-    }
+  const addNotification = (type, message) => {
+    const notification = {
+      id: Date.now(),
+      type,
+      message,
+      timestamp: new Date().toISOString()
+    };
+    
+    setNotifications(prev => [notification, ...prev.slice(0, 4)]);
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 5000);
   };
 
-  // Enhanced Mock Analysis for fallback
   const generateMockAnalysis = () => {
     const scores = {
       genre_match: Math.floor(Math.random() * 30) + 70,
@@ -359,70 +142,17 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     };
   };
 
-  // Notification System
-  const addNotification = (type, message) => {
-    const notification = {
-      id: Date.now(),
-      type, // 'success', 'error', 'warning', 'info'
-      message,
-      timestamp: new Date().toISOString()
-    };
-    
-    setNotifications(prev => [notification, ...prev.slice(0, 4)]);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 5000);
-  };
-
-  // Enhanced Configuration Management
   useEffect(() => {
-    // Load all configurations
-    const savedAirtableConfig = {
-      baseId: localStorage.getItem('airtableBaseId') || '',
-      tableId: localStorage.getItem('airtableTableId') || 'tblWriterSubmissions',
-      apiKey: localStorage.getItem('airtableApiKey') || ''
-    };
-
-    const savedClaudeConfig = {
-      apiKey: localStorage.getItem('claudeApiKey') || '',
-      enabled: localStorage.getItem('claudeEnabled') === 'true'
-    };
-
-    const savedEmailConfig = {
-      enabled: localStorage.getItem('emailEnabled') === 'true',
-      smtpHost: localStorage.getItem('emailSmtpHost') || '',
-      smtpPort: localStorage.getItem('emailSmtpPort') || '587',
-      username: localStorage.getItem('emailUsername') || '',
-      password: localStorage.getItem('emailPassword') || '',
-      fromEmail: localStorage.getItem('emailFromEmail') || ''
-    };
-
-    const savedCloudinaryConfig = {
-      cloudName: localStorage.getItem('cloudinaryCloudName') || '',
-      apiKey: localStorage.getItem('cloudinaryApiKey') || '',
-      apiSecret: localStorage.getItem('cloudinaryApiSecret') || '',
-      enabled: localStorage.getItem('cloudinaryEnabled') === 'true'
-    };
-
-    setConfig({
-      airtable: savedAirtableConfig,
-      claude: savedClaudeConfig,
-      email: savedEmailConfig,
-      cloudinary: savedCloudinaryConfig
-    });
-
-    const savedUxSettings = localStorage.getItem('uxSettings');
-    if (savedUxSettings) {
-      setUxSettings(JSON.parse(savedUxSettings));
-    }
-
     const savedAgent = localStorage.getItem('currentAgent');
     if (savedAgent) {
       const agent = JSON.parse(savedAgent);
       setCurrentAgent(agent);
       setIsLoggedIn(true);
+    }
+
+    const savedUxSettings = localStorage.getItem('uxSettings');
+    if (savedUxSettings) {
+      setUxSettings(JSON.parse(savedUxSettings));
     }
   }, []);
 
@@ -477,7 +207,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
   const handleFileUpload = (e, fileType) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
         addNotification('error', 'File too large. Maximum size is 10MB.');
         return;
@@ -491,7 +220,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     }
   };
 
-  // Enhanced Submit Function with all integrations
   const handleSubmit = async () => {
     if (!formData.writerName || !selectedProject || !formData.pitch_summary) {
       addNotification('error', 'Please fill in Writer Name and Pitch Summary');
@@ -502,15 +230,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     addNotification('info', 'Processing submission...');
 
     try {
-      // Perform AI analysis
-      addNotification('info', 'Running AI analysis...');
-      const analysis = await analyzeWithClaudeAPI(
-        formData.cv_file,
-        formData.sample_script,
-        selectedProject.requirements,
-        selectedProject.genre,
-        selectedProject.tone
-      );
+      const analysis = generateMockAnalysis();
 
       const submissionData = {
         id: Date.now(),
@@ -521,12 +241,8 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         projectInterest: selectedProject.title,
         availability: formData.availability,
         pitch_summary: formData.pitch_summary,
-        cv_file: formData.cv_file ? {
-          name: formData.cv_file.name
-        } : null,
-        sample_script: formData.sample_script ? {
-          name: formData.sample_script.name
-        } : null,
+        cv_file: formData.cv_file ? { name: formData.cv_file.name } : null,
+        sample_script: formData.sample_script ? { name: formData.sample_script.name } : null,
         submission_date: new Date().toISOString().split('T')[0],
         analysis: {
           genre_match: analysis.genre_match,
@@ -547,7 +263,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
         timestamp: new Date().toISOString()
       };
 
-      // Update project submission count
       setProjects(prev => prev.map(p => 
         p.id === selectedProject.id 
           ? { ...p, submissionCount: (p.submissionCount || 0) + 1 }
@@ -580,55 +295,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     }
   };
 
-  // Enhanced Dashboard helper functions
-  const getFilteredAndSortedSubmissions = () => {
-    let filtered = submissions;
-    
-    // Apply filters
-    if (submissionFilter !== 'all') {
-      filtered = filtered.filter(s => s.recommendation === submissionFilter);
-    }
-    
-    // Apply search
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(s => 
-        s.writerName.toLowerCase().includes(term) ||
-        s.agentName.toLowerCase().includes(term) ||
-        s.agentCompany.toLowerCase().includes(term) ||
-        s.projectInterest.toLowerCase().includes(term)
-      );
-    }
-    
-    // Apply date range
-    if (dateRange.start && dateRange.end) {
-      filtered = filtered.filter(s => {
-        const subDate = new Date(s.submission_date);
-        return subDate >= new Date(dateRange.start) && subDate <= new Date(dateRange.end);
-      });
-    }
-    
-    // Apply sort
-    return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'overall_score':
-          return b.overall_score - a.overall_score;
-        case 'submission_date':
-          return new Date(b.submission_date) - new Date(a.submission_date);
-        case 'genre_match':
-          return b.analysis.genre_match - a.analysis.genre_match;
-        case 'experience_relevance':
-          return (b.analysis.experience_relevance || 0) - (a.analysis.experience_relevance || 0);
-        case 'writer_name':
-          return a.writerName.localeCompare(b.writerName);
-        case 'agent_name':
-          return a.agentName.localeCompare(b.agentName);
-        default:
-          return b.overall_score - a.overall_score;
-      }
-    });
-  };
-
   const getRecommendationStyle = (recommendation) => {
     switch (recommendation) {
       case 'RECOMMEND':
@@ -656,27 +322,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     }));
   };
 
-  // Enhanced CSV Export functions
-  const generateDetailedReport = () => {
-    const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
-    
-    let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,Submission Date\n";
-    
-    sortedSubmissions.forEach(sub => {
-      csvContent += `"${sub.writerName}","${sub.agentName}","${sub.agentCompany}","${sub.email}","${sub.projectInterest}","${sub.availability || ''}",${sub.overall_score},"${sub.recommendation || 'CONSIDER'}",${sub.analysis.genre_match},${sub.analysis.tone_match},${sub.analysis.dialogue_quality},${sub.analysis.structure_score},${sub.analysis.character_development},${sub.analysis.experience_relevance || ''},"${sub.submission_date}"\n`;
-    });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `detailed_writer_analysis_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    addNotification('success', 'Detailed report exported successfully');
-  };
-
   const generateReport = () => {
     const sortedSubmissions = [...submissions].sort((a, b) => b.overall_score - a.overall_score);
     let csvContent = "Writer Name,Agent,Agency,Email,Project,Availability,Overall Score,Recommendation,Genre Match,Tone Match,Dialogue Quality,Structure Score,Character Development,Experience Relevance,Submission Date\n";
@@ -690,39 +335,9 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
     a.download = `writer_submissions_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    
-    addNotification('success', 'Quick report exported successfully');
+    addNotification('success', 'Report exported successfully');
   };
 
-  // Analytics calculations
-  const getAnalytics = () => {
-    const totalSubmissions = submissions.length;
-    const recommended = submissions.filter(s => s.recommendation === 'RECOMMEND').length;
-    const considered = submissions.filter(s => s.recommendation === 'CONSIDER').length;
-    const passed = submissions.filter(s => s.recommendation === 'PASS').length;
-    const avgScore = totalSubmissions > 0 ? Math.round(submissions.reduce((sum, s) => sum + s.overall_score, 0) / totalSubmissions) : 0;
-    
-    const last30Days = submissions.filter(s => {
-      const subDate = new Date(s.submission_date);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return subDate >= thirtyDaysAgo;
-    }).length;
-
-    return {
-      totalSubmissions,
-      recommended,
-      considered,
-      passed,
-      avgScore,
-      last30Days,
-      recommendationRate: totalSubmissions > 0 ? Math.round((recommended / totalSubmissions) * 100) : 0
-    };
-  };
-
-  const analytics = getAnalytics();
-
-  // Notification component
   const NotificationBar = () => {
     if (notifications.length === 0) return null;
 
@@ -829,7 +444,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
               </div>
               <button
                 onClick={handleLogout}
-                className={`${colors.bgHover} hover:${colors.bgDark} px-3 py-2 rounded-lg flex items-center`}
+                className={`${colors.bgHover} px-3 py-2 rounded-lg flex items-center`}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -875,41 +490,17 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
               {isAdmin ? 'All Submissions' : 'My Submissions'}
             </button>
             {isAdmin && (
-              <>
-                <button
-                  onClick={() => setActiveTab('analytics')}
-                  className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === 'analytics'
-                      ? 'border-green-500 text-green-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <BarChart3 className="inline w-4 h-4 mr-2" />
-                  Analytics
-                </button>
-                <button
-                  onClick={() => setShowConfig(!showConfig)}
-                  className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    showConfig
-                      ? 'border-green-500 text-green-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Database className="inline w-4 h-4 mr-2" />
-                  Database Setup
-                </button>
-                <button
-                  onClick={() => setShowAdvancedConfig(!showAdvancedConfig)}
-                  className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    showAdvancedConfig
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Settings className="inline w-4 h-4 mr-2" />
-                  Settings
-                </button>
-              </>
+              <button
+                onClick={() => setShowConfig(!showConfig)}
+                className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  showConfig
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Database className="inline w-4 h-4 mr-2" />
+                Settings
+              </button>
             )}
           </div>
         </div>
@@ -931,7 +522,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
               </div>
               <div className="grid gap-6">
                 {projects.filter(p => p.status === 'Active').map(project => (
-                  <div key={project.id} className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:${colors.borderHover} transition-all duration-200 hover:shadow-md`}>
+                  <div key={project.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200 hover:shadow-md transition-all duration-200">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -953,43 +544,35 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                             <span className="text-sm font-medium text-gray-500">Tone:</span>
                             <p className="text-gray-900">{project.tone}</p>
                           </div>
-                          {uxSettings.showBudgetInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Budget:</span>
-                              <p className="text-gray-900">{project.budget}</p>
-                            </div>
-                          )}
-                          {uxSettings.showNetworkInfo && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-500">Network:</span>
-                              <p className="text-gray-900">{project.network}</p>
-                            </div>
-                          )}
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Budget:</span>
+                            <p className="text-gray-900">{project.budget}</p>
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-gray-500">Network:</span>
+                            <p className="text-gray-900">{project.network}</p>
+                          </div>
                         </div>
                       </div>
                       <div className="text-right ml-4">
                         <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mb-2">
                           {project.status}
                         </span>
-                        {uxSettings.showDeadlines && (
-                          <p className="text-sm text-gray-500">Deadline: {project.deadline}</p>
-                        )}
+                        <p className="text-sm text-gray-500">Deadline: {project.deadline}</p>
                         <p className="text-sm text-blue-600 font-medium">{project.submissionCount || 0} submissions</p>
                       </div>
                     </div>
                     
                     <p className="text-gray-700 mb-4">{project.description}</p>
                     
-                    {uxSettings.showRequirements && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
-                        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                          {project.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Requirements:</h4>
+                      <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                        {project.requirements.map((req, index) => (
+                          <li key={index}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
                     
                     <button
                       onClick={() => selectProject(project)}
@@ -1006,7 +589,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
           {/* Submit Tab */}
           {activeTab === 'submit' && selectedProject && (
             <div>
-              <div className={`mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200`}>
+              <div className="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                 <h2 className="text-xl font-bold text-indigo-900 mb-2">Submitting for: {selectedProject.title}</h2>
                 <p className="text-indigo-700">{selectedProject.genre} • {selectedProject.network}</p>
                 <div className="flex items-center mt-2 text-sm text-indigo-600">
@@ -1033,88 +616,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                         name="writerName"
                         value={formData.writerName}
                         onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Writer Email</label>
-                      <input
-                        type="email"
-                        name="writerEmail"
-                        value={formData.writerEmail}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="writer@email.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Writer Phone</label>
-                      <input
-                        type="tel"
-                        name="writerPhone"
-                        value={formData.writerPhone}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="+1-555-0123"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
-                      <select
-                        name="availability"
-                        value={formData.availability}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                      >
-                        <option value="">Select Availability</option>
-                        <option value="Immediate">Immediate</option>
-                        <option value="2-4 weeks">2-4 weeks</option>
-                        <option value="1-2 months">1-2 months</option>
-                        <option value="Post-current-project">After Current Project</option>
-                        <option value="2025 Q3">2025 Q3</option>
-                        <option value="2025 Q4">2025 Q4</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Previous Credits & Experience</label>
-                    <textarea
-                      name="previousCredits"
-                      value={formData.previousCredits}
-                      onChange={handleInputChange}
-                      rows="3"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="List relevant TV shows, films, or other writing credits..."
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Writing Experience Summary</label>
-                    <textarea
-                      name="writingExperience"
-                      value={formData.writingExperience}
-                      onChange={handleInputChange}
-                      rows="3"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Years of experience, specializations, notable achievements..."
-                    />
-                  </div>
-                </div>
-
-                {/* Pitch Section */}
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Project Pitch</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pitch Summary *</label>
-                    <textarea
-                      name="pitch_summary"
-                      value={formData.pitch_summary}
-                      onChange={handleInputChange}
                       rows="6"
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Why is this writer perfect for this specific project? Include relevant experience, previous credits, writing style, and how they match the project requirements..."
@@ -1146,7 +647,6 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                           ✓ {formData.cv_file.name} ({Math.round(formData.cv_file.size / 1024)}KB)
                         </p>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX (max 10MB)</p>
                     </div>
                     
                     <div>
@@ -1165,21 +665,8 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                           ✓ {formData.sample_script.name} ({Math.round(formData.sample_script.size / 1024)}KB)
                         </p>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">PDF, FDX, Fountain, TXT (max 10MB)</p>
                     </div>
                   </div>
-                  
-                  {config.claude.enabled && (
-                    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-                      <div className="flex items-center text-blue-800">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        <span className="text-sm font-medium">AI Analysis Enabled</span>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Uploaded documents will be analyzed by Claude AI for genre fit, dialogue quality, and more.
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Action Buttons */}
@@ -1205,7 +692,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                     {isSubmitting ? (
                       <span className="flex items-center justify-center">
                         <Loader className="animate-spin w-4 h-4 mr-2" />
-                        Analyzing & Submitting...
+                        Processing...
                       </span>
                     ) : (
                       'Submit Writer'
@@ -1219,21 +706,20 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
           {/* Dashboard */}
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                {isAdmin ? 'All Submissions' : 'My Submissions'}
-              </h2>
-              
-              {isAdmin && (
-                <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {isAdmin ? 'All Submissions' : 'My Submissions'}
+                </h2>
+                {isAdmin && submissions.length > 0 && (
                   <button
-                    onClick={generateDetailedReport}
+                    onClick={generateReport}
                     className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Export Report
+                    Export CSV
                   </button>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Submissions List */}
               <div className="space-y-6">
@@ -1344,157 +830,60 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
             </div>
           )}
 
-          {/* Analytics Tab */}
-          {activeTab === 'analytics' && isAdmin && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Analytics Dashboard</h2>
-              
-              {/* Key Metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-blue-700">Total Submissions</h3>
-                  <p className="text-3xl font-bold text-blue-900">{analytics.totalSubmissions}</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-3xl font-bold text-green-900">{analytics.recommended}</p>
-                  <p className="text-xs text-green-600">{analytics.recommendationRate}% rate</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-yellow-700">Under Review</h3>
-                  <p className="text-3xl font-bold text-yellow-900">{analytics.considered}</p>
-                </div>
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-red-700">Passed</h3>
-                  <p className="text-3xl font-bold text-red-900">{analytics.passed}</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-purple-700">Avg Score</h3>
-                  <p className="text-3xl font-bold text-purple-900">{analytics.avgScore}%</p>
-                </div>
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-indigo-700">Last 30 Days</h3>
-                  <p className="text-3xl font-bold text-indigo-900">{analytics.last30Days}</p>
-                </div>
-              </div>
-
-              {/* Top Projects and Agencies */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Performing Projects</h3>
-                  <div className="space-y-3">
-                    {projects.map(project => (
-                      <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium text-gray-900">{project.title}</p>
-                          <p className="text-sm text-gray-500">{project.genre}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-indigo-600">{project.submissionCount || 0}</p>
-                          <p className="text-xs text-gray-500">submissions</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Agencies</h3>
-                  <div className="space-y-3">
-                    {Array.from(new Set(submissions.map(s => s.agentCompany))).map(agency => {
-                      const agencySubmissions = submissions.filter(s => s.agentCompany === agency);
-                      const avgScore = agencySubmissions.length > 0 
-                        ? Math.round(agencySubmissions.reduce((sum, s) => sum + s.overall_score, 0) / agencySubmissions.length)
-                        : 0;
-                      return (
-                        <div key={agency} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                          <div>
-                            <p className="font-medium text-gray-900">{agency}</p>
-                            <p className="text-sm text-gray-500">{agencySubmissions.length} submissions</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-600">{avgScore}%</p>
-                            <p className="text-xs text-gray-500">avg score</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Database Configuration */}
+          {/* Settings Tab */}
           {showConfig && isAdmin && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Database Configuration</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
               
+              {/* Basic Configuration */}
               <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Airtable Integration</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Configuration</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Base ID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                     <input
                       type="text"
-                      value={config.airtable.baseId}
-                      onChange={(e) => setConfig(prev => ({
-                        ...prev,
-                        airtable: { ...prev.airtable, baseId: e.target.value }
-                      }))}
+                      value={uxSettings.companyName}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
                       className="w-full p-3 border border-gray-300 rounded-lg"
-                      placeholder="appXXXXXXXXXXXXXX"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Table ID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Portal Title</label>
                     <input
                       type="text"
-                      value={config.airtable.tableId}
-                      onChange={(e) => setConfig(prev => ({
-                        ...prev,
-                        airtable: { ...prev.airtable, tableId: e.target.value }
-                      }))}
+                      value={uxSettings.portalTitle}
+                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
                       className="w-full p-3 border border-gray-300 rounded-lg"
-                      placeholder="tblWriterSubmissions"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                    <input
-                      type="password"
-                      value={config.airtable.apiKey}
-                      onChange={(e) => setConfig(prev => ({
-                        ...prev,
-                        airtable: { ...prev.airtable, apiKey: e.target.value }
-                      }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                      placeholder="patXXXXXXXXXXXXXX"
                     />
                   </div>
                 </div>
+                
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Welcome Message</label>
+                  <textarea
+                    value={uxSettings.customWelcomeMessage}
+                    onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    rows="3"
+                    placeholder="Optional welcome message for the assignments page..."
+                  />
+                </div>
+
                 <button
                   onClick={() => {
-                    localStorage.setItem('airtableBaseId', config.airtable.baseId);
-                    localStorage.setItem('airtableTableId', config.airtable.tableId);
-                    localStorage.setItem('airtableApiKey', config.airtable.apiKey);
-                    addNotification('success', 'Airtable configuration saved!');
+                    localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
+                    addNotification('success', 'Settings saved successfully!');
                   }}
-                  className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+                  className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
                 >
-                  Save Airtable Config
+                  Save Settings
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Advanced Settings */}
-          {showAdvancedConfig && isAdmin && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Advanced Settings</h2>
-              
               {/* Claude AI Configuration */}
-              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Claude AI Analysis</h3>
+              <div className="bg-white p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Advanced AI Configuration</h3>
                 <div className="space-y-4">
                   <label className="flex items-center">
                     <input
@@ -1520,6 +909,9 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                       className="w-full p-3 border border-gray-300 rounded-lg"
                       placeholder="sk-ant-XXXXXXXXXXXXXXXX"
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Get your API key from <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">console.anthropic.com</a>
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1530,97 +922,7 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
                   }}
                   className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
                 >
-                  Save Claude Config
-                </button>
-              </div>
-
-              {/* UX Settings */}
-              <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Branding & Appearance</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                    <input
-                      type="text"
-                      value={uxSettings.companyName}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, companyName: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Portal Title</label>
-                    <input
-                      type="text"
-                      value={uxSettings.portalTitle}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, portalTitle: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
-                    <select
-                      value={uxSettings.primaryColor}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    >
-                      <option value="indigo">Indigo</option>
-                      <option value="blue">Blue</option>
-                      <option value="purple">Purple</option>
-                      <option value="green">Green</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Login Message</label>
-                    <input
-                      type="text"
-                      value={uxSettings.loginMessage}
-                      onChange={(e) => setUxSettings(prev => ({ ...prev, loginMessage: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Custom Welcome Message</label>
-                  <textarea
-                    value={uxSettings.customWelcomeMessage}
-                    onChange={(e) => setUxSettings(prev => ({ ...prev, customWelcomeMessage: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg"
-                    rows="3"
-                    placeholder="Optional welcome message for the assignments page..."
-                  />
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="text-md font-semibold text-gray-800 mb-3">Display Options</h4>
-                  <div className="space-y-3">
-                    {[
-                      { key: 'showDeadlines', label: 'Show Project Deadlines' },
-                      { key: 'showBudgetInfo', label: 'Show Budget Information' },
-                      { key: 'showNetworkInfo', label: 'Show Network Information' },
-                      { key: 'showRequirements', label: 'Show Project Requirements' }
-                    ].map(option => (
-                      <label key={option.key} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={uxSettings[option.key]}
-                          onChange={(e) => setUxSettings(prev => ({ ...prev, [option.key]: e.target.checked }))}
-                          className="mr-3 h-4 w-4 text-indigo-600"
-                        />
-                        <span className="text-sm text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    localStorage.setItem('uxSettings', JSON.stringify(uxSettings));
-                    addNotification('success', 'UX settings saved!');
-                  }}
-                  className="mt-6 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
-                >
-                  Save UX Settings
+                  Save AI Configuration
                 </button>
               </div>
             </div>
@@ -1631,4 +933,60 @@ DO NOT OUTPUT ANYTHING OTHER THAN VALID JSON.`
   );
 }
 
-export default App;
+export default App;InputChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Writer Email</label>
+                      <input
+                        type="email"
+                        name="writerEmail"
+                        value={formData.writerEmail}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="writer@email.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+                      <select
+                        name="availability"
+                        value={formData.availability}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select Availability</option>
+                        <option value="Immediate">Immediate</option>
+                        <option value="2-4 weeks">2-4 weeks</option>
+                        <option value="1-2 months">1-2 months</option>
+                        <option value="Post-current-project">After Current Project</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Previous Credits & Experience</label>
+                    <textarea
+                      name="previousCredits"
+                      value={formData.previousCredits}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="List relevant TV shows, films, or other writing credits..."
+                    />
+                  </div>
+                </div>
+
+                {/* Pitch Section */}
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Project Pitch</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pitch Summary *</label>
+                    <textarea
+                      name="pitch_summary"
+                      value={formData.pitch_summary}
+                      onChange={handle
